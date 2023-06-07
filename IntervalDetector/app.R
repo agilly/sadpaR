@@ -570,55 +570,55 @@ sidebarLayout(
   )
 
 ),
-tabPanel("Edit", sidebarLayout(
+tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
   sidebarPanel(
-    "Camera trap:",
+    appLang$CTTooltip,
     tagAppendAttributes(textOutput("CTInEditFrame"), class="h4"),
     hr(),
-    sliderInput('frameSize', 'Display Size:',
+    sliderInput('frameSize',  appLang$pictureSizeTooltip,
     min=100, max=2000,
     value=300,
     step=10, round=0),
-    selectInput("ChooseEdit", "Select sequence to edit:", choices="",#, unique(d$d30m.event)
+    selectInput("ChooseEdit", appLang$selectSequenceToEdit, choices="",#, unique(d$d30m.event)
     , multiple=T, size=8, selectize=F),
-    actionButton("mergeEdit", "Merge selected"),
+    actionButton("mergeEdit", appLang$mergeSequencesTooltip),
     hr(),
-    strong("Path:"),
+    strong(appLang$pathTooltip),
     verbatimTextOutput("restPath"),
-    selectInput("PicInSequence", "Pictures in sequence:", "", size=8, selectize=F),
+    selectInput("PicInSequence", appLang$listPicturesTooltip, "", size=8, selectize=F),
     actionButton("previousEdit", " ", icon=icon("chevron-up", lib="font-awesome")),
     actionButton("nextEdit", " ", icon=icon("chevron-down", lib="font-awesome")),
     actionButton("splitEdit", " ", icon=icon("cut", lib="font-awesome")),
     br(),
-    h6("NB: the cut will occur before the selected image."),
+    h6(appLang$warningCut),
 
     width=2),
     mainPanel(
       uiOutput("editFrame")
     )
   )),
-  tabPanel("Tagging",
+  tabPanel(title=appLang$taggingTabLabel, value="Tagging",
   sidebarPanel(
-    selectInput("tagCT", "Camera trap:", choices=""),
-    selectInput("tagSequence", "Choose a sequence to tag:", choices=""),# unique(d$d30m.event)),
-    h4("Constant fields:"),
+    selectInput("tagCT", appLang$CTTooltip, choices=""),
+    selectInput("tagSequence", appLang$selectSequenceToTag, choices=""),# unique(d$d30m.event)),
+    h4(appLang$fixedFields),
     #textInput("block", "Block", value="NCNX"),
-    textInput("CTNumber", "CT Number", value="CT01"),
-    textInput("camType", "Cam type", value="Bushnell"),
-    textInput("locationID", "Location", value="T1-01"),
-    textInput("researcher", "Researcher", value="Lo1"),
+    textInput("CTNumber", appLang$CTNumber, value="CT01"),
+    textInput("camType", appLang$CTType, value="Bushnell"),
+    textInput("locationID", appLang$locationLabel, value="T1-01"),
+    textInput("researcher", appLang$researcherLabel, value="Lo1"),
     #textInput("season", "Season", value="2020"),
     #textInput("team", "Team", value="Team 1")
 
     ,width=2),
     mainPanel(
-      h3("Species Tagging"),
+      h3(appLang$taggingTitle),
       DTOutput('taggingTable'),
-      actionButton("rmSpeciesButton", "Delete Selected Row", icon=icon("minus", lib="font-awesome"),
+      actionButton("rmSpeciesButton", appLang$deleteRow, icon=icon("minus", lib="font-awesome"),
       style="color: #fff; background-color: #df4759; border-color: #8b0000"),
       hr(),
       DTOutput('speciesSelector'),
-      actionButton("addSpeciesButton", "Add Selected Species", icon=icon("plus", lib="font-awesome"),
+      actionButton("addSpeciesButton", appLang$addRow, icon=icon("plus", lib="font-awesome"),
       style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
 
 

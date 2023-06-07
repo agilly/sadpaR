@@ -34,7 +34,7 @@ sudo make install
 ### R libraries
 Start R on linux and type:
 ```R
-toinstall=c("data.table",  "shiny", "zoo", "optparse", "exifr",  "chron", "DT", "tools", "shinyjs", "shinyFiles", "jsonlite")
+toinstall=c("data.table",  "shiny", "zoo", "optparse", "exifr",  "chron", "DT", "tools", "shinyjs", "shinyFiles", "jsonlite", "config")
 install.packages(toinstall)
 ```
 
