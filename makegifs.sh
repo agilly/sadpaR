@@ -27,6 +27,8 @@ numct=$(tail -n+2 $fn | cut -d, -f3,4 | sort -u | wc -l)
 numevent=$(tail -n+2 $fn | cut -d, -f3-5 | sort -u | wc -l)
 echo "Detected $numevent events across $numct camera traps."
 #numevent=$(tail -1 $fn | cut -f $FIELD -d,)
+mkdir -p $on.sequences
+mkdir -p tmp
 tail -n+2 $fn | cut -d, -f3,4 | sort -u > $on.sequences/unique.ct.txt;
 for ct in $(cat $on.sequences/unique.ct.txt);
 do

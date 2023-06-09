@@ -17,7 +17,7 @@ To install R on Linux, follow the instructions here: https://www.digitalocean.co
 ### Dependencies
 The package requires the command line tools `gifsicle`, `ffmpeg` and `ExifTool`. Install the former 2 using `apt`:
 ```bash
-sudo apt update && sudo apt install -y gifsicle ffmpeg make build-essential
+sudo apt update && sudo apt install -y gifsicle ffmpeg make build-essential libharfbuzz-dev libfribidi-dev
 ```
 
 `ExifTool` is a dependency of the R library `EXIFr`, and can be installed with (replace version as appropriate):
@@ -34,8 +34,10 @@ sudo make install
 ### R libraries
 Start R on linux and type:
 ```R
-toinstall=c("data.table",  "shiny", "zoo", "optparse", "exifr",  "chron", "DT", "tools", "shinyjs", "shinyFiles", "jsonlite", "config")
+toinstall=c("data.table",  "shiny", "zoo", "optparse", "exifr",  "chron", "DT", "tools", "shinyjs", "shinyFiles", "jsonlite", "config", "devtools", "R.utils")
 install.packages(toinstall)
+library(devtools)
+devtools::install_github("cmartin/EXIFr")
 ```
 
 ### Installation

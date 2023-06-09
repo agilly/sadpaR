@@ -496,7 +496,7 @@ ui <- fluidPage(
   )
 ),
 #titlePanel("Interval detector"),
-navbarPage(appLang$appName, id="tabs",
+navbarPage(title=div(img(src="wcs.logo.black.png", style="height:30px"), tags$b("sadpaR"),appLang$appName), id="tabs",
 tabPanel(title=appLang$summaryTabLabel,value="Summary",
 fluidRow(
   column(2,

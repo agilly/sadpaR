@@ -3,6 +3,7 @@
 library(data.table)
 library(exifr)
 library(chron)
+library(EXIFr)
 suppressPackageStartupMessages(library("optparse"))
 
 inform=function(...){
@@ -74,18 +75,18 @@ datetime[,c("date", "time"):=NULL]
 # two directories down from the base is the location and CT
 base=args$inputdir
 base=ifelse(base %like% "/$", base, paste0(base, "/"))
+inform("Preparing")
 datetime[,c("location", "ct"):=tstrsplit(sub("^/+", "", sub(base, "", fn)), "/")[1:2]]
 if(args$location){
     ctrange=datetime[,list(min(dt), max(dt)), by=c("location")]
-}
-else{
+}else{
     ctrange=datetime[,list(min(dt), max(dt)), by=c("location", "ct")]
 }
-
 timerange=as.numeric(c(min(c(ctrange$V1, ctrange$V2), na.rm=T), max(c(ctrange$V1, ctrange$V2), na.rm=T)))
 upper=(timerange[2]-timerange[1])*1.2
 pdf(ofi, width=10, height=25)
 
+inform("Page 1")
 #page 1 : whole plot
 plot(x=as.Date(c(ctrange$V1, ctrange$V2)), y=rnorm(nrow(ctrange)*2)*nrow(ctrange), ylim=c(1,nrow(ctrange)), xaxt="n",type="n", xlab="time ranges",
      ylab="", xlim=c(min(c(ctrange$V1, ctrange$V2), na.rm=T), upper),
@@ -94,6 +95,7 @@ segments(x0=as.Date(ctrange$V1), x1=as.Date(ctrange$V2), y0=1:nrow(ctrange))
 axis(1, as.Date(c(ctrange$V1, ctrange$V2)), format(as.Date(c(ctrange$V1, ctrange$V2)), "%b %Y"), cex.axis = 1, las=0)
 text(x=rep(max(ctrange$V2, na.rm=T), nrow(ctrange)), y=1:nrow(ctrange), paste(ctrange$location, ctrange$ct), pos=4)
 
+inform("Page 2")
 # page 2: outliers in range
 par(mfrow=c(5,1))
 ctrange[,rdiff:=V2-V1]
@@ -116,7 +118,7 @@ if(nrow(ctrange)){
   fail1=paste(ctrange$location, ctrange$ct)
 }
 
-
+inform("Page 3")
 # page 3: outliers in start
 ctrange=ctrange.full
 m=median(as.numeric(ctrange$V1))
@@ -138,7 +140,7 @@ invisible(dev.off())
 
 fail=c(fail1, fail2)
 ctrange.full[,failQC:=FALSE]
-ctrange.full[paste(location, ct) %in% fail, failQC:=FALSE]
+if(args$location) ctrange.full[location %in% fail, failQC:=FALSE] else ctrange.full[paste(location, ct) %in% fail, failQC:=FALSE]
 setnames(ctrange.full, c("V1", "V2"), c("start", "end"))
 oft=paste0(args$outbase, ".ranges.csv")
 fwrite(ctrange.full, oft)
@@ -154,8 +156,7 @@ datetime[,interval:=lapply(.SD, function(v){
     vdiff=vdiff<args$interval*60
     return(cumsum(!vdiff))
 }),.SDcols="dt",by=c("location")]
-    }
-else{
+    }else{
     datetime[,interval:=lapply(.SD, function(v){
         vdiff=difftime(v[-1], v[-length(v)], units="sec")
         vdiff=c(0, vdiff)
