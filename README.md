@@ -20,12 +20,13 @@ The package requires the command line tools `gifsicle`, `ffmpeg` and `ExifTool`.
 sudo apt update && sudo apt install -y gifsicle ffmpeg make build-essential libharfbuzz-dev libfribidi-dev libssl-dev libfontconfig1-dev libxml2-dev libpng-dev libtiff5-dev libjpeg-dev
 ```
 
-`ExifTool` is a dependency of the R library `EXIFr`, and can be installed with (replace version as appropriate):
+`ExifTool` is a dependency of the R library `EXIFr`, and can be installed with :
 
 ```bash
-wget https://exiftool.org/Image-ExifTool-12.40.tar.gz
-tar -xvzf Image-ExifTool-12.40.tar.gz
-cd Image-ExifTool-12.40/
+fn=$(wget https://exiftool.org -q -O- | grep ".tar.gz"| sed 's/.tar.gz.*/.tar.gz/;s/.*\"//')
+wget https://exiftool.org/$fn
+tar -xvzf $fn
+cd ${fn/.tar.gz/}
 perl Makefile.PL
 make test
 sudo make install
