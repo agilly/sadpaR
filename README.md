@@ -32,6 +32,19 @@ sudo make install
 ```
 
 ### R libraries
+#### Windows users
+One particular library is troublesome to install and requires additional steps. Follow these instructions if you are running WSL (Linux on Windows).
+In a terminal, type
+```bash
+export R_INSTALL_STAGED=FALSE
+```
+Then start R, and type:
+```R
+install.packages("xml2")
+```
+and quit R.
+
+### All users (incl. Windows)
 Start R on linux and type:
 ```R
 toinstall=c("data.table",  "shiny", "zoo", "optparse", "exifr",  "chron", "DT", "tools", "shinyjs", "shinyFiles", "jsonlite", "config", "devtools", "R.utils")
