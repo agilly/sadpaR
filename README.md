@@ -48,7 +48,11 @@ and quit R.
 Start R on linux and type:
 ```R
 toinstall=c("data.table",  "shiny", "zoo", "optparse", "exifr",  "chron", "DT", "tools", "shinyjs", "shinyFiles", "jsonlite", "config", "devtools", "R.utils")
-install.packages(toinstall)
+new.packages <- list.of.packages[!(toinstall %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+```
+Finally we install the non-canonical library `EXIFr`:
+```R
 library(devtools)
 devtools::install_github("cmartin/EXIFr")
 ```
