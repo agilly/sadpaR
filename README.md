@@ -17,7 +17,7 @@ To install R on Linux, follow the instructions here: https://www.digitalocean.co
 ### Dependencies
 The package requires the command line tools `gifsicle`, `ffmpeg` and `ExifTool`. Install the former 2 using `apt`:
 ```bash
-sudo apt update && sudo apt install -y gifsicle ffmpeg make build-essential libharfbuzz-dev libfribidi-dev
+sudo apt update && sudo apt install -y gifsicle ffmpeg make build-essential libharfbuzz-dev libfribidi-dev libssl-dev libfontconfig1-dev libxml2-dev libpng-dev libtiff5-dev libjpeg-dev
 ```
 
 `ExifTool` is a dependency of the R library `EXIFr`, and can be installed with (replace version as appropriate):
