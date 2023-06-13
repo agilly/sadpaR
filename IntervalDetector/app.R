@@ -384,7 +384,8 @@ output$CTInEditFrame=renderText({
     driveLetters=toupper(list.files("/mnt"))
     driveLetters=paste(driveLetters, "drive")
     drives=c(drives, setNames(mountedDrives, driveLetters))
-    drives=c(setNames("/mnt/c/Users/R. Tidi Victor/Sync/CameraTrapAI", "debug"), drives)
+    #drives=c(setNames("/mnt/c/Users/R. Tidi Victor/Sync/CameraTrapAI", "debug"), drives)
+    drives=c(setNames(Sys.getenv("HOME"), "Home"), drives)
     return(drives)
 
   }
