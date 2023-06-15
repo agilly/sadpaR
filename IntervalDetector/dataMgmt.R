@@ -12,9 +12,10 @@ checkSelectedFolder=function(session, input, output, rootDir, loadedDataset, cur
     showNotification("Selected folder does not contain a tagging directory, creating.", type="message")
     dir.create(paste(rootDir(), "tagging", sep="/"))
   }else{
-    if(file.exists(paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/")))
+    if(file.exists(paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/"))){
     setProgress(0.25, detail = paste("Reading tagging information"))
     currentTagging$internalTable=fread(paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/"), colClasses=c(indName="character", Sex="character", Age="character"))
+  }
   }
   appPaths$taggingCSV=paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/")
   # at this stage we have all three necessary folders.
@@ -46,7 +47,7 @@ checkSelectedFolder=function(session, input, output, rootDir, loadedDataset, cur
   ctdata=fread(paste(rootDir(), "metadata", "ct.csv" ,sep="/"))
   seqFolders=paste(ctdata$Station, ctdata[['Camera ID']], sep=".")
   print(head(seqFolders))
-  tenRandom=sample(seqFolders, 10)
+  tenRandom=sample(seqFolders, min(c(10, nrow(ctdata))))
   print("ok")
   tenRandom=paste(rootDir(), "sequences", tenRandom, sep="/")
   setProgress(0.4, detail = paste("Checking if camera traps can be found in sequences"))
@@ -151,6 +152,7 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   showTab(inputId="tabs", target="Sequence")
   showTab(inputId="tabs", target="Edit")
   showTab(inputId="tabs", target="Tagging")
+  shinyjs::show("saveButton")
   setProgress(1, detail = paste("Dataset finished loading"))
 }
 

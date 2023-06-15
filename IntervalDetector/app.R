@@ -47,8 +47,13 @@ print(...)
 
 
 emptyTaggingTable=data.table(id=integer(), individual=character(),common_name=character(), lao_name=character(), scientific_name=character(), group=character(), family=character(), order=character(), sex=character(), age=character())
-emptyInternalTaggingTable=data.table(ctid=character(0), event=integer(0), numInd=integer(0), indID=integer(0), speciesID=integer(0), indName=character(0), sex=integer(0), age=integer(0))
+emptyInternalTaggingTable=data.table(ctid=character(0), event=integer(0), numInd=integer(0), indID=integer(0), speciesID=integer(0), indName=character(0), Sex=integer(0), Age=integer(0))
 
+
+createEmptyTaggingRow=function(ctid, event){
+  ret=data.table(ctid=ctid, event=event, numInd=0, indID=0, speciesID=NA, indName=NA, Sex=NA, Age=NA)
+  return(ret)
+}
 
 basepath=""
 
@@ -60,7 +65,17 @@ server <- function(input, output, session) {
   dur <- reactiveValues(durations=NULL)
   currentTagging=reactiveValues(displayTable=emptyTaggingTable, internalTable=emptyInternalTaggingTable)
 
+  observeEvent(input$saveButton, {
+    tryCatch(
+      {saveDataset(rootDir, loadedDataset, currentTagging)
+          showNotification("Dataset saved.", type="message")},
+      error=function(e){
+        showNotification("Dataset failed to save:")
+        showNotification(e)
+      }
+      )
 
+    })
 
   output$animation=renderImage({
     fn=paste(appPaths$sequenceDir, sub(" ", ".", input$whichCT), paste0("sequence.", input$sequence, ".gif"), sep="/")
@@ -146,9 +161,12 @@ server <- function(input, output, session) {
     print(ctidSel)
     print(interval)
     print(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)
-
+    print(numTags==1)
+    print(unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0)
     if(numTags==1 & unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0){
-      return(appLang$tooltipTaggedEmpty)
+      # there is only one row and numInd is 0
+      print("heyy")
+      return(appLang$tooltipTagEmpty)
     }
   })
 
@@ -234,8 +252,15 @@ output$CTInEditFrame=renderText({
                                                            selected=df$Age[i],
                                                            width = "100px"))
     }
-    df
+    ret=emptyInternalTaggingTable
+
+    if(!is.null(currentTagging$internalTable) & nrow(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence])){
+      if(nrow(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence])==1 
+        & unique(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence]$numInd)==0) ret=emptyTaggingTable else ret=df
+    }
+    ret
   })
+
 
 
   output$taggingTable=renderDataTable(taggingData(), options = list(autoWidth = TRUE, dom='t', paging = FALSE, ordering = FALSE), 
@@ -266,13 +291,13 @@ output$CTInEditFrame=renderText({
       #print(newRow)
 
       currentInternalTable=currentTagging$internalTable[ctid==input$whichCTSeq & event==input$tagSequence]
+      isTaggedEmpty=nrow(currentInternalTable)==1 && unique(currentInternalTable$indID)==0
       #print("one")
       #print(currentInternalTable)
       #print(nrow(currentInternalTable))
-      if(nrow(currentInternalTable)==1 ){#& 
-        if(is.na(currentInternalTable$speciesID)){
+      if(isTaggedEmpty){
+        print("isTaggedEmpty = TRUE")
         currentTagging$internalTable=currentTagging$internalTable[!(ctid==input$whichCTSeq & event==input$tagSequence)]
-      }
       }
       #print("two")
       #numInd must be updated all across
@@ -281,10 +306,10 @@ output$CTInEditFrame=renderText({
       currentTagging$internalTable=rbind(currentTagging$internalTable, addInternalTable)
       #print("four")
       currentTagging$internalTable[ctid==input$whichCTSeq & event==input$tagSequence, numInd:=nrow(currentTagging$displayTable)+1]
-      #print("five")
+      print("five")
       # this is needed here because of the triggers attached to displaytable
-      currentTagging$displayTable=rbind(table, newRow)
-      #print("six")
+      if(isTaggedEmpty) currentTagging$displayTable=newRow else currentTagging$displayTable=rbind(table, newRow)
+      print("six")
     }
   })
 
@@ -359,7 +384,8 @@ output$CTInEditFrame=renderText({
     driveLetters=toupper(list.files("/mnt"))
     driveLetters=paste(driveLetters, "drive")
     drives=c(drives, setNames(mountedDrives, driveLetters))
-    drives=c(setNames("/mnt/c/Users/R. Tidi Victor/Sync/CameraTrapAI", "debug"), drives)
+    #drives=c(setNames("/mnt/c/Users/R. Tidi Victor/Sync/CameraTrapAI", "debug"), drives)
+    drives=c(setNames(Sys.getenv("HOME"), "Home"), drives)
     return(drives)
 
   }
@@ -386,6 +412,7 @@ output$CTInEditFrame=renderText({
   hideTab(inputId="tabs", target="Sequence")
   hideTab(inputId="tabs", target="Edit")
   hideTab(inputId="tabs", target="Tagging")
+  shinyjs::hide("saveButton")
 
   observeEvent(input$editSequenceButton, {
     #showTab(inputId="tabs", target="Edit")
@@ -411,13 +438,24 @@ output$CTInEditFrame=renderText({
     ctidSel=input$whichCT
     sequence=input$sequence
     interval = as.integer(input$sequence)
+    print(currentTagging$internalTable[ctid==ctidSel & event==interval])
+    flush.console()
     numTags=nrow(currentTagging$internalTable[ctid==ctidSel & event==interval])
     if(numTags==0){
       # sequence previously untagged
-      currentTagging$internalTable=rbind(currentTagging$internalTable, data.table(ctid=ctidSel, event=sequence, numInd=0, indID=NA, speciesID=NA, indName=NA))
+      currentTagging$internalTable=rbind(currentTagging$internalTable, createEmptyTaggingRow(ctidSel, interval))
     }else{
-      # sequence previously tagged
-      currentTagging$internalTable[ctid==ctidSel & event==interval]=data.table(ctid=ctidSel, event=sequence, numInd=0, indID=NA, speciesID=NA, indName=NA)
+      # sequence previously tagged, delete rows and replace with empty df
+      print(1)
+      currentTagging$internalTable=currentTagging$internalTable[!(ctid==ctidSel & event==interval)]
+      print(2)
+      currentTagging$internalTable=rbind(currentTagging$internalTable, createEmptyTaggingRow(ctidSel, interval))
+      print(3)
+      newRow=data.table(id=0, individual="", common_name=NA,
+      lao_name=NA, scientific_name=NA, group=NA,
+      family=NA, order=NA, Sex=NA, Age=NA)
+      currentTagging$displayTable= newRow
+      print(4)
     }
 
   })
@@ -496,6 +534,9 @@ ui <- fluidPage(
   )
 ),
 #titlePanel("Interval detector"),
+    #style = "padding: 0px;", # no gap in navbar
+    actionButton("saveButton", "Save", icon = icon("save"),
+                 style = "position: absolute; top: 5px; right: 5px; z-index:10000;"),
 navbarPage(title=div(img(src="wcs.logo.black.png", style="height:30px"), tags$b("sadpaR"),appLang$appName), id="tabs",
 tabPanel(title=appLang$summaryTabLabel,value="Summary",
 fluidRow(
@@ -557,6 +598,8 @@ sidebarLayout(
 
     mainPanel(
       tagAppendAttributes(textOutput("imgct"), class="h4"),
+      #actionButton("favoriteButton", "Add to favourites", icon=icon("fa-regular", "fa-star")),
+      #actionButton("favoriteButton", "Add to favourites", icon=icon("fa-solid", "fa-star", style="color:#E87722")),
       uiOutput("animationContainer"),
       actionButton("previous", appLang$previousButtonLabel),
       actionButton("replay", appLang$replayButtonLabel),

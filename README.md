@@ -17,25 +17,43 @@ To install R on Linux, follow the instructions here: https://www.digitalocean.co
 ### Dependencies
 The package requires the command line tools `gifsicle`, `ffmpeg` and `ExifTool`. Install the former 2 using `apt`:
 ```bash
-sudo apt update && sudo apt install -y gifsicle ffmpeg make build-essential libharfbuzz-dev libfribidi-dev
+sudo apt update && sudo apt install -y gifsicle ffmpeg make build-essential libharfbuzz-dev libfribidi-dev libssl-dev libfontconfig1-dev libxml2-dev libpng-dev libtiff5-dev libjpeg-dev
 ```
 
-`ExifTool` is a dependency of the R library `EXIFr`, and can be installed with (replace version as appropriate):
+`ExifTool` is a dependency of the R library `EXIFr`, and can be installed with :
 
 ```bash
-wget https://exiftool.org/Image-ExifTool-12.40.tar.gz
-tar -xvzf Image-ExifTool-12.40.tar.gz
-cd Image-ExifTool-12.40/
+fn=$(wget https://exiftool.org -q -O- | grep ".tar.gz"| sed 's/.tar.gz.*/.tar.gz/;s/.*\"//')
+wget https://exiftool.org/$fn
+tar -xvzf $fn
+cd ${fn/.tar.gz/}
 perl Makefile.PL
 make test
 sudo make install
 ```
 
 ### R libraries
+#### Windows users
+One particular library is troublesome to install and requires additional steps. Follow these instructions if you are running WSL (Linux on Windows).
+In a terminal, type
+```bash
+export R_INSTALL_STAGED=FALSE
+```
+Then start R, and type:
+```R
+install.packages("xml2")
+```
+and quit R.
+
+### All users (incl. Windows)
 Start R on linux and type:
 ```R
 toinstall=c("data.table",  "shiny", "zoo", "optparse", "exifr",  "chron", "DT", "tools", "shinyjs", "shinyFiles", "jsonlite", "config", "devtools", "R.utils")
-install.packages(toinstall)
+new.packages <- list.of.packages[!(toinstall %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+```
+Finally we install the non-canonical library `EXIFr`:
+```R
 library(devtools)
 devtools::install_github("cmartin/EXIFr")
 ```
