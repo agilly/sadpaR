@@ -10,7 +10,7 @@ library(glue)
 options(shiny.maxRequestSize=100*1024^2)
 
 ## LANGUAGE SETTINGS
-appLang=config::get(file="lang.yml", config="Lao")
+appLang=config::get(file="lang.yml", config="English")
 
 options(error = function() {
   calls <- sys.calls()

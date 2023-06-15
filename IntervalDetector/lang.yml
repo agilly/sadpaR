@@ -2,7 +2,7 @@ default:
   author: "Arthur Gilly"
 
 English:
-  appName: "CT Annotation Tool"
+  appName: "CT Tagging Tool"
   summaryTabLabel: "Summary"
   loadDatasetButtonLabel : "Load dataset"
   loadDatasetModalTitle : "Please select a folder"
