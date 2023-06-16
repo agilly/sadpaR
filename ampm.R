@@ -59,6 +59,30 @@ check_directory_AMPM=function(dir.name, d, subsample=NULL, night=c(0,5), day=c(9
 	}
 }
 # check_directory_AMPM(dn, intervals)
+# INSTALL
+# LIBTIFF-DEV LIBX11-DEV
 
 dlist=unique(intervals$dn)
 ampm=rbindlist(lapply(dlist, function(x) check_directory_AMPM(x, intervals)))
+
+
+tofs=list.files("../images_renamed/", recursive=T, pattern="jpg|JPG", full.names=T)
+imgdata=rbindlist(lapply(tofs, function(fn){x=read_exif(fn); return(data.table(fn=fn,dt=x$DateTimeOriginal, w=x$ExifImageWidth, h=x$ExifImageHeight))}))
+imgdata[,date:=as.POSIXct(dt, format="%Y:%m:%d %H:%M:%S")]
+imgdata[,hr:=as.integer(format(date, "%H"))]
+imgdata[,dn:=dirname(fn)]
+#ampm=rbindlist(lapply(dirs, function(x) check_directory_AMPM(x, imgdata)))
+tt=imgdata[(hr>0 & hr<5) | (hr>9 & hr<16)]
+subs=tt[,.SD[sample(.N, min(10, .N))], by=dn]
+
+is_bw=function(fn){
+	img=imager::load.image(fn)
+	img=imsub(img, x>100, x<300, y>100, y<300)
+	return(length(unique(R(img)-G(img)))==1)
+}
+
+subs[,isbw:=sapply(fn, is_bw)]
+table(subs[hr>0 & hr<5]$isbw)
+table(subs[hr>9 & hr<16]$isbw)
+subs[hr>0 & hr<5 & !isbw]
+subs[hr>9 & hr<16 & isbw]
