@@ -379,6 +379,15 @@ output$CTInEditFrame=renderText({
   output$season=renderText({loadedDataset$metadata$Season})
 
   getDrives=function(){
+    if(.Platform$OS.type=="unix"){
+      return(getDrives_linux())
+    } else {
+      print("Windows detected")
+      return(getDrives_windows())
+    }
+  }
+
+  getDrives_linux=function(){
     drives=setNames("/", "root filesystem")
     mountedDrives=list.files("/mnt", full.names=T)
     driveLetters=toupper(list.files("/mnt"))
@@ -390,6 +399,17 @@ output$CTInEditFrame=renderText({
 
   }
 
+  getDrives_windows=function(){
+    drives=trimws(shell("wmic logicaldisk get name", intern=T)[-1])
+    drives=drives[drives!=""]
+    drives=glue("{drives}\\")
+    print(glue("Drives detected: {paste(drives, collapse=',')}"))
+    driveLetters=paste(drives, "drive")
+    drives=setNames(drives, driveLetters)
+    drives=c(setNames(Sys.getenv("HOME"), "Home"), drives)
+    print(drives)
+    return(drives)
+  }
 
   appPaths=reactiveValues(taggingCSV="", sequenceDir="")
 
@@ -628,6 +648,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
     hr(),
     strong(appLang$pathTooltip),
     verbatimTextOutput("restPath"),
+    actionButton("changeRoot", appLang$changeRootButton, icon=icon("edit", lib="font-awesome")),
     selectInput("PicInSequence", appLang$listPicturesTooltip, "", size=8, selectize=F),
     actionButton("previousEdit", " ", icon=icon("chevron-up", lib="font-awesome")),
     actionButton("nextEdit", " ", icon=icon("chevron-down", lib="font-awesome")),
