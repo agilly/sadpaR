@@ -75,7 +75,8 @@ English:
   errorSeveralBreakpoints: "You cannot specify more than 1 split points. Please select only 1 image."
   tooltipNoTagYet: "This event has not been tagged yet"
   tooltipTagEmpty: "This event has been tagged as empty"
-  changeRootButton: "Change image root"
+  changeRootDirButtonLabel: "Change image root"
+  changeRootDirModalTitle: "Change image root"
 
 Lao:  
   appName  : "ໂປແກັມ ຈໍາແນກຂໍ້ມູນຈາກກ້ອງດັກຖ່າຍພາບສັດປ່າ"
@@ -151,4 +152,5 @@ Lao:
   errorSeveralBreakpoints : "ບໍ່ສາມາດໝາຍບ່ອນຕັດແຍກກຸ່ມຂໍ້ມູນໄດ້ເກີນຈຸດ 1. ຈົ່ງເລືອກເອົາຮູບໜຶ່ງ"
   tooltipNoTagYet: "ຍັງບໍ່ທັນຕິດຂັດຂໍ້ມູນໃສ່ເຫດການນີ້ເທື່ອ"
   tooltipTagEmpty: "ຍັງບໍ່ທັນຕິດຂັດຊື່ “ບໍ່ມີຫຍັງ“ ໃສ່ເຫດການນີ້ເທື່ອ"
-  changeRootButton: "Change image root"
+  changeRootDirButtonLabel: "Change image root"
+  changeRootDirModalTitle: "Change image root"

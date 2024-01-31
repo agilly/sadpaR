@@ -12,21 +12,21 @@ options(shiny.maxRequestSize=100*1024^2)
 ## LANGUAGE SETTINGS
 appLang=config::get(file="lang.yml", config="English")
 
-options(error = function() {
-  calls <- sys.calls()
-  if (length(calls) >= 2L) {
-    sink(stderr())
-    on.exit(sink(NULL))
-    cat("Backtrace:\n")
-    calls <- rev(calls[-length(calls)])
-    for (i in seq_along(calls)) {
-      cat(i, ": ", deparse(calls[[i]], nlines = 1L), "\n", sep = "")
-    }
-  }
-  if (!interactive()) {
-    q(status = 1)
-  }
-})
+# options(error = function() {
+#   calls <- sys.calls()
+#   if (length(calls) >= 2L) {
+#     sink(stderr())
+#     on.exit(sink(NULL))
+#     cat("Backtrace:\n")
+#     calls <- rev(calls[-length(calls)])
+#     for (i in seq_along(calls)) {
+#       cat(i, ": ", deparse(calls[[i]], nlines = 1L), "\n", sep = "")
+#     }
+#   }
+#   if (!interactive()) {
+#     q(status = 1)
+#   }
+# })
 
 printv=function(...){
 print(...)
@@ -79,7 +79,8 @@ server <- function(input, output, session) {
 
   output$animation=renderImage({
     fn=paste(appPaths$sequenceDir, sub(" ", ".", input$whichCT), paste0("sequence.", input$sequence, ".gif"), sep="/")
-    #print(fn)
+    print("from output$animation")
+    print(fn)
     list(
       src=fn, height=input$imgSize,
       nonce=runif(1)
@@ -90,7 +91,8 @@ server <- function(input, output, session) {
   observeEvent(input$replay, {
     output$animation=renderImage({
       fn=paste(appPaths$sequenceDir, sub(" ", ".", input$whichCT), paste0("sequence.", input$sequence, ".gif"), sep="/")
-      #print(fn)
+      print("from output$replay+anination")
+      print(fn)
       list(
         src=fn, height=input$imgSize,
         nonce=runif(1)
@@ -101,6 +103,8 @@ server <- function(input, output, session) {
 
   observeEvent(input$previous, {
     req(input$sequence)
+    print("input sequence from previous")
+    print(input$sequence)
     choices=unique((loadedDataset$interval_data)[ctid==input$whichCT]$interval)
     if (as.integer(input$sequence) != choices[1]) {
       currId=which(choices==as.integer(input$sequence))
@@ -118,6 +122,8 @@ server <- function(input, output, session) {
 
   observeEvent(input$nextButton, {
     req(input$sequence)
+    print("input sequence from next")
+    print(input$sequence)
     choices=unique((loadedDataset$interval_data)[ctid==input$whichCT]$interval)
     if (as.integer(input$sequence) != choices[length(choices)]) {
       currId=which(choices==as.integer(input$sequence))
@@ -140,6 +146,9 @@ server <- function(input, output, session) {
 
 
   output$imgct=renderText({req(input$sequence);
+      print("input sequence from imgct")
+      print(input$sequence)
+
     X=nrow((loadedDataset$interval_data)[ctid==input$whichCT & interval == as.integer(input$sequence)])
     Y=dur$durations$duration[dur$durations$sequence==input$sequence]
     paste(glue(appLang$durationTooltip))
@@ -148,6 +157,9 @@ server <- function(input, output, session) {
   output$tagInfo=renderText({
     req(input$whichCTSeq)
     req(input$sequence)
+        print("input sequence from tagInfo")
+    print(input$sequence)
+
     #updateTaggingOnSeqChange(session, input, output, currentTagging, loadedDataset)
     ctidSel=input$whichCTSeq
     interval = as.integer(input$sequence)
@@ -183,21 +195,21 @@ output$CTInEditFrame=renderText({
 
   output$frame=renderImage({
     #print(basepath)
-    fn=paste(loadedDataset$imagePath, input$PicInSequence, sep="/")
-    #print(fn)
+    fn=paste(userSuppliedRootDir(), input$PicInSequence, sep="/")
+    print(fn)
     list(
       src=fn, height=input$frameSize,
       nonce=runif(1)
     )
   }, deleteFile=F)
 
-  output$restPath=renderText({loadedDataset$imagePath})
+  output$restPath=renderText({userSuppliedRootDir()})
   output$editFrame=renderUI({imageOutput("frame", height=input$frameSize)})
 
 
 
-  sexes =reactive({sapply(1:nrow(currentTagging$displayTable), function(i) input[[paste0(get_sex_sel_id(), i)]])})
-  ages  =reactive({sapply(1:nrow(currentTagging$displayTable), function(i) input[[paste0(get_age_sel_id(), i)]])})
+  sexes =reactive({print(333);sapply(1:nrow(currentTagging$displayTable), function(i) input[[paste0(get_sex_sel_id(), i)]])})
+  ages  =reactive({print(444);sapply(1:nrow(currentTagging$displayTable), function(i) input[[paste0(get_age_sel_id(), i)]])})
   observe({
     # this means 1 sex has been changed. We do not know which one so we have to update all.
       #a=isolate(input$num)
@@ -361,6 +373,9 @@ output$CTInEditFrame=renderText({
   output$ctSummary=renderDT(loadedDataset$ct)
 
   output$existingTags=renderDT({req(input$sequence)
+      print("input sequence from existingTags")
+    print(input$sequence)
+
     if(!is.null(currentTagging$displayTable) & nrow(currentTagging$displayTable) & !(is.na(currentTagging$displayTable$group[1]))){
       return(currentTagging$displayTable)
     }else{
@@ -407,6 +422,7 @@ output$CTInEditFrame=renderText({
     driveLetters=paste(drives, "drive")
     drives=setNames(drives, driveLetters)
     drives=c(setNames(Sys.getenv("HOME"), "Home"), drives)
+    drives=c(setNames("C:\\Users\\R. Tidi Victor\\Sync\\CameraTrapAI", "debug"), drives)
     print(drives)
     return(drives)
   }
@@ -417,6 +433,20 @@ output$CTInEditFrame=renderText({
 
   shinyDirChoose(input, 'inputFolder', session=session, roots=getDrives())
   rootDir=reactive({parseDirPath(getDrives(), input$inputFolder)})
+
+  shinyDirChoose(input, 'rootDir', session=session, roots=getDrives())
+  userSuppliedRootDir=reactiveVal("")
+
+  observeEvent(loadedDataset$imagePath, {if(userSuppliedRootDir()=="") userSuppliedRootDir(loadedDataset$imagePath)})
+
+  observeEvent(input$rootDir, {
+    if(length(input$rootDir)) {
+      userSuppliedRootDir(parseDirPath(getDrives(), input$rootDir))
+      #if(.Platform$OS.type=="windows") userSuppliedRootDir(gsub("/", "\\", userSuppliedRootDir(), fixed=T))
+      print(glue("Changing Images root dir to {userSuppliedRootDir()}"))
+    }
+    }
+    )
 
   observeEvent(input$inputFolder, {
     selectedRootDir=rootDir()
@@ -458,6 +488,9 @@ output$CTInEditFrame=renderText({
     ctidSel=input$whichCT
     sequence=input$sequence
     interval = as.integer(input$sequence)
+        print("input sequence from emptysequencebutton")
+    print(interval)
+
     print(currentTagging$internalTable[ctid==ctidSel & event==interval])
     flush.console()
     numTags=nrow(currentTagging$internalTable[ctid==ctidSel & event==interval])
@@ -490,6 +523,7 @@ output$CTInEditFrame=renderText({
     seq=as.integer(input$ChooseEdit)
     fn=input$PicInSequence
     chosenCT=input$whichCT
+    print("11")
     selectedFn=loadedDataset$interval_data[location==strsplit(chosenCT, " ")[[1]][1] & ct == strsplit(chosenCT, " ")[[1]][2],fn]
     choices=tstrsplit(selectedFn, loadedDataset$imagePath)[[2]]
     if (input$PicInSequence != choices[1]) {
@@ -515,6 +549,7 @@ output$CTInEditFrame=renderText({
     seq=as.integer(input$ChooseEdit)
     fn=input$PicInSequence
     chosenCT=input$whichCT
+    print("22")
     selectedFn=loadedDataset$interval_data[location==strsplit(chosenCT, " ")[[1]][1] & ct == strsplit(chosenCT, " ")[[1]][2],fn]
     choices=tstrsplit(selectedFn, loadedDataset$imagePath)[[2]]
     if (input$PicInSequence != choices[length(choices)]) {
@@ -580,28 +615,45 @@ fluidRow(
 ),
 fluidRow(
   hr(),
-  column(6,
-    h3(appLang$intervalsTableLabel),
-    selectInput("whichCT", appLang$selectCTTooltip, choices=""),
-    DTOutput('seqsummary')
-  ),
-  column(6,
-    h3(appLang$speciesTableLabel),
-    DTOutput("speciesSummary")
+  tabsetPanel(
+    tabPanel(appLang$intervalsTableLabel, 
+      selectInput("whichCT", appLang$selectCTTooltip, choices=""),
+      DTOutput('seqsummary')
+      ),
+    tabPanel(appLang$speciesTableLabel, 
+      DTOutput("speciesSummary")
+      ),
+    tabPanel(appLang$stationsTableLabel,
+      DTOutput('stationsSummary')  
+    ),
+    tabPanel(appLang$CTTableLabel,
+      DTOutput("ctSummary")  
+    )
   )
-),
-fluidRow(
-  hr(),
-  column(6,
-    h3(appLang$stationsTableLabel),
-    DTOutput('stationsSummary')
-  ),
-  column(6,
-    h3(appLang$CTTableLabel),
-    DTOutput("ctSummary")
-  )
-),
-hr()
+#   hr(),
+#   column(6,
+#     h3(appLang$intervalsTableLabel),
+#     selectInput("whichCT", appLang$selectCTTooltip, choices=""),
+#     DTOutput('seqsummary')
+#   ),
+#   column(6,
+#     h3(appLang$speciesTableLabel),
+#     DTOutput("speciesSummary")
+#   )
+# ),
+# fluidRow(
+#   hr(),
+#   column(6,
+#     h3(appLang$stationsTableLabel),
+#     DTOutput('stationsSummary')
+#   ),
+#   column(6,
+#     h3(appLang$CTTableLabel),
+#     DTOutput("ctSummary")
+#   )
+# ),
+# hr()
+)
 ),
 tabPanel(title=appLang$sequenceTabLabel, value="Sequence",
 sidebarLayout(
@@ -648,7 +700,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
     hr(),
     strong(appLang$pathTooltip),
     verbatimTextOutput("restPath"),
-    actionButton("changeRoot", appLang$changeRootButton, icon=icon("edit", lib="font-awesome")),
+    shinyDirButton('rootDir', appLang$changeRootDirButtonLabel, appLang$changeRootDirModalTitle, icon=icon("edit", lib="font-awesome")),
     selectInput("PicInSequence", appLang$listPicturesTooltip, "", size=8, selectize=F),
     actionButton("previousEdit", " ", icon=icon("chevron-up", lib="font-awesome")),
     actionButton("nextEdit", " ", icon=icon("chevron-down", lib="font-awesome")),

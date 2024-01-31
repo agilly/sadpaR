@@ -15,6 +15,7 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
       dur$durations=as.data.table(durations)
 
       chosenCT=input$whichCT
+      print(666)
       selectedFn=loadedDataset$interval_data[location==strsplit(chosenCT, " ")[[1]][1] & ct == strsplit(chosenCT, " ")[[1]][2],fn]
       choices=tstrsplit(selectedFn, loadedDataset$imagePath)[[2]]
       updateSelectInput(session, inputId="PicInSequence", choices=choices, selected=choices[1])
@@ -100,6 +101,9 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
       #print("going in")
       if(length(input$ChooseEdit)==1){
         shinyjs::disable("mergeEdit")
+        print(777)
+        print("chosenCT")
+        print(strsplit(chosenCT, " "))
         selectedFn=loadedDataset$interval_data[location==strsplit(chosenCT, " ")[[1]][1] & ct == strsplit(chosenCT, " ")[[1]][2] & interval == as.integer(input$ChooseEdit),fn]
         #print("one")
         #print(head(selectedFn))
@@ -125,6 +129,7 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
         #shinyjs::enable("mergeEdit")
         # the merge action is triggered
         ## get the highest id, increment it
+        print(888)
         selectedLoc=strsplit(chosenCT, " ")[[1]]
         selectedCT=selectedLoc[2]
         selectedLoc=selectedLoc[1]
@@ -151,6 +156,7 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
 
   observeEvent(input$splitEdit, {
     chosenCT=input$whichCT
+    print(999)
     selectedLoc=strsplit(chosenCT, " ")[[1]]
     selectedCT=selectedLoc[2]
     selectedLoc=selectedLoc[1]
