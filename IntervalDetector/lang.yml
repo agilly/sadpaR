@@ -77,8 +77,14 @@ English:
   tooltipTagEmpty: "This event has been tagged as empty"
   changeRootDirButtonLabel: "Change image root"
   changeRootDirModalTitle: "Change image root"
+  onlyShowAll: "all"
+  onlyShowIncomplete: "incomplete"
+  markedForAttention: "marked for attention"
+  noPhotosInSelection: "No photo available for the selected criteria."
+  multiSpeciesTaggingTab: "Multispecies events"
+  warning: "Warning"
 
-Lao:  
+ລາວ:  
   appName  : "ໂປແກັມ ຈໍາແນກຂໍ້ມູນຈາກກ້ອງດັກຖ່າຍພາບສັດປ່າ"
   summaryTabLabel  : "ສັງເຂບ"
   loadDatasetButtonLabel  : "ດຶງເອົາຂໍ້ມູນເຂົ້າ"
@@ -154,3 +160,9 @@ Lao:
   tooltipTagEmpty: "ຍັງບໍ່ທັນຕິດຂັດຊື່ “ບໍ່ມີຫຍັງ“ ໃສ່ເຫດການນີ້ເທື່ອ"
   changeRootDirButtonLabel: "Change image root"
   changeRootDirModalTitle: "Change image root"
+  onlyShowAll: "ທັງຫມົດ"
+  onlyShowIncomplete: "ບໍ່ຄົບຖ້ວນ"
+  markedForAttention: "ເຮັດເຄື່ອງໝາຍໃຫ້ຄວາມສົນໃຈ"
+  noPhotosInSelection: "ບໍ່ມີຮູບພາບສໍາລັບເງື່ອນໄຂທີ່ເລືອກ."
+  multiSpeciesTaggingTab: "ເຫດການທີມີຫຼາຍຊະນິດພັນ"
+  warning : "ຄໍາເຕອນ"

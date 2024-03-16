@@ -6,11 +6,17 @@ library(shiny)
 library(shinyFiles)
 library(shinyjs)
 library(glue)
+library(shinyWidgets)
+library(shinycssloaders)
+library(ini)
+library(yaml)
+#library(shinypop)
+
 #required to allow up to 100M load
 options(shiny.maxRequestSize=100*1024^2)
 
 ## LANGUAGE SETTINGS
-appLang=config::get(file="lang.yml", config="English")
+appLang=config::get(file="lang.yml", config=read.ini("sadpar.ini")$app_config$language)
 
 # options(error = function() {
 #   calls <- sys.calls()
@@ -57,17 +63,16 @@ createEmptyTaggingRow=function(ctid, event){
 
 basepath=""
 
-source("lib.R")
 
 server <- function(input, output, session) {
-  shinyOptions(progress.style="old")
+  #shinyOptions(progress.style="old")
   loadedDataset <-reactiveValues(interval_data=NULL, species_data=NULL, metadata=NULL, ct=NULL, stations=NULL, imagePath=NULL)
   dur <- reactiveValues(durations=NULL)
   currentTagging=reactiveValues(displayTable=emptyTaggingTable, internalTable=emptyInternalTaggingTable)
 
   observeEvent(input$saveButton, {
     tryCatch(
-      {saveDataset(rootDir, loadedDataset, currentTagging)
+      {saveDataset(rootDir, loadedDataset, currentTagging, retag())
           showNotification("Dataset saved.", type="message")},
       error=function(e){
         showNotification("Dataset failed to save:")
@@ -79,8 +84,8 @@ server <- function(input, output, session) {
 
   output$animation=renderImage({
     fn=paste(appPaths$sequenceDir, sub(" ", ".", input$whichCT), paste0("sequence.", input$sequence, ".gif"), sep="/")
-    print("from output$animation")
-    print(fn)
+    # print("from output$animation")
+    # print(fn)
     list(
       src=fn, height=input$imgSize,
       nonce=runif(1)
@@ -91,8 +96,8 @@ server <- function(input, output, session) {
   observeEvent(input$replay, {
     output$animation=renderImage({
       fn=paste(appPaths$sequenceDir, sub(" ", ".", input$whichCT), paste0("sequence.", input$sequence, ".gif"), sep="/")
-      print("from output$replay+anination")
-      print(fn)
+      # print("from output$replay+anination")
+      # print(fn)
       list(
         src=fn, height=input$imgSize,
         nonce=runif(1)
@@ -103,8 +108,8 @@ server <- function(input, output, session) {
 
   observeEvent(input$previous, {
     req(input$sequence)
-    print("input sequence from previous")
-    print(input$sequence)
+    # print("input sequence from previous")
+    # print(input$sequence)
     choices=unique((loadedDataset$interval_data)[ctid==input$whichCT]$interval)
     if (as.integer(input$sequence) != choices[1]) {
       currId=which(choices==as.integer(input$sequence))
@@ -122,15 +127,15 @@ server <- function(input, output, session) {
 
   observeEvent(input$nextButton, {
     req(input$sequence)
-    print("input sequence from next")
-    print(input$sequence)
+    # print("input sequence from next")
+    # print(input$sequence)
     choices=unique((loadedDataset$interval_data)[ctid==input$whichCT]$interval)
     if (as.integer(input$sequence) != choices[length(choices)]) {
       currId=which(choices==as.integer(input$sequence))
       newSelection <- choices[currId + 1]
       #print("observe next called")
-      print(currId)
-      print(newSelection)
+      # print(currId)
+      # print(newSelection)
       updateSelectInput(session, inputId = "sequence", selected = newSelection)
       updateSelectInput(session, inputId = "tagSequence", selected=newSelection)
     }
@@ -146,8 +151,8 @@ server <- function(input, output, session) {
 
 
   output$imgct=renderText({req(input$sequence);
-      print("input sequence from imgct")
-      print(input$sequence)
+      # print("input sequence from imgct")
+      # print(input$sequence)
 
     X=nrow((loadedDataset$interval_data)[ctid==input$whichCT & interval == as.integer(input$sequence)])
     Y=dur$durations$duration[dur$durations$sequence==input$sequence]
@@ -157,8 +162,8 @@ server <- function(input, output, session) {
   output$tagInfo=renderText({
     req(input$whichCTSeq)
     req(input$sequence)
-        print("input sequence from tagInfo")
-    print(input$sequence)
+    # print("input sequence from tagInfo")
+    # print(input$sequence)
 
     #updateTaggingOnSeqChange(session, input, output, currentTagging, loadedDataset)
     ctidSel=input$whichCTSeq
@@ -169,15 +174,15 @@ server <- function(input, output, session) {
     if(numTags==0){
       return(appLang$tooltipNoTagYet)
     }
-    print(numTags)
-    print(ctidSel)
-    print(interval)
-    print(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)
-    print(numTags==1)
-    print(unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0)
+    # print(numTags)
+    # print(ctidSel)
+    # print(interval)
+    # print(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)
+    # print(numTags==1)
+    # print(unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0)
     if(numTags==1 & unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0){
       # there is only one row and numInd is 0
-      print("heyy")
+      # print("heyy")
       return(appLang$tooltipTagEmpty)
     }
   })
@@ -196,7 +201,7 @@ output$CTInEditFrame=renderText({
   output$frame=renderImage({
     #print(basepath)
     fn=paste(userSuppliedRootDir(), input$PicInSequence, sep="/")
-    print(fn)
+    # print(fn)
     list(
       src=fn, height=input$frameSize,
       nonce=runif(1)
@@ -308,7 +313,7 @@ output$CTInEditFrame=renderText({
       #print(currentInternalTable)
       #print(nrow(currentInternalTable))
       if(isTaggedEmpty){
-        print("isTaggedEmpty = TRUE")
+        # print("isTaggedEmpty = TRUE")
         currentTagging$internalTable=currentTagging$internalTable[!(ctid==input$whichCTSeq & event==input$tagSequence)]
       }
       #print("two")
@@ -318,10 +323,10 @@ output$CTInEditFrame=renderText({
       currentTagging$internalTable=rbind(currentTagging$internalTable, addInternalTable)
       #print("four")
       currentTagging$internalTable[ctid==input$whichCTSeq & event==input$tagSequence, numInd:=nrow(currentTagging$displayTable)+1]
-      print("five")
+      # print("five")
       # this is needed here because of the triggers attached to displaytable
       if(isTaggedEmpty) currentTagging$displayTable=newRow else currentTagging$displayTable=rbind(table, newRow)
-      print("six")
+      # print("six")
     }
   })
 
@@ -373,8 +378,8 @@ output$CTInEditFrame=renderText({
   output$ctSummary=renderDT(loadedDataset$ct)
 
   output$existingTags=renderDT({req(input$sequence)
-      print("input sequence from existingTags")
-    print(input$sequence)
+    #   print("input sequence from existingTags")
+    # print(input$sequence)
 
     if(!is.null(currentTagging$displayTable) & nrow(currentTagging$displayTable) & !(is.na(currentTagging$displayTable$group[1]))){
       return(currentTagging$displayTable)
@@ -384,8 +389,7 @@ output$CTInEditFrame=renderText({
 
 })
 
-  source("internalSelectInputCoherenceAndDurationGeneration.R")
-  source("dataMgmt.R")
+
   internalSelectInputCoherenceAndDurationGeneration(session, input, output, loadedDataset, currentTagging, dur, rootDir)
 
   output$landscape=renderText({loadedDataset$metadata$Landscape})
@@ -422,8 +426,8 @@ output$CTInEditFrame=renderText({
     driveLetters=paste(drives, "drive")
     drives=setNames(drives, driveLetters)
     drives=c(setNames(Sys.getenv("HOME"), "Home"), drives)
-    drives=c(setNames("C:\\Users\\R. Tidi Victor\\Sync\\CameraTrapAI", "debug"), drives)
-    print(drives)
+    #drives=c(setNames("C:\\Users\\R. Tidi Victor\\Sync\\CameraTrapAI", "debug"), drives)
+    # print(drives)
     return(drives)
   }
 
@@ -451,17 +455,21 @@ output$CTInEditFrame=renderText({
   observeEvent(input$inputFolder, {
     selectedRootDir=rootDir()
     if(length(selectedRootDir)){
-      withProgress(message = appLang$loadingDatasetModal, value = 0, {
-        if(checkSelectedFolder(session, input, output, rootDir, loadedDataset, currentTagging, dur, appPaths)){
-          loadDataset(session, input, output, rootDir, loadedDataset, currentTagging, dur)
+      #withProgress(message = appLang$loadingDatasetModal, value = 0, {
+     progressSweetAlert(session = session, id="loadDatasetPBar", value=0, display_pct=T, title="Loading dataset", status="warning", striped=T, size="l")
+        if(checkSelectedFolder(session, input, output, rootDir, loadedDataset, currentTagging, dur, appPaths, appLang = appLang)){
+          loadDataset(session, input, output, rootDir, loadedDataset, currentTagging, dur, savedRetag)
         }
-      })
+        closeSweetAlert(session = session)
+      #})
     }
   })
 
   hideTab(inputId="tabs", target="Sequence")
   hideTab(inputId="tabs", target="Edit")
   hideTab(inputId="tabs", target="Tagging")
+  hideTab(inputId="tabs", target="Retagging")
+  
   shinyjs::hide("saveButton")
 
   observeEvent(input$editSequenceButton, {
@@ -480,6 +488,8 @@ output$CTInEditFrame=renderText({
     print("performing postflight tasks")
     print(isolate(currentTagging$internalTable))
     fwrite(isolate(currentTagging$internalTable), isolate(appPaths$taggingCSV))
+    # print("Killing app")
+    # stopApp()
   })
 
 
@@ -488,10 +498,10 @@ output$CTInEditFrame=renderText({
     ctidSel=input$whichCT
     sequence=input$sequence
     interval = as.integer(input$sequence)
-        print("input sequence from emptysequencebutton")
-    print(interval)
+    # print("input sequence from emptysequencebutton")
+    # print(interval)
 
-    print(currentTagging$internalTable[ctid==ctidSel & event==interval])
+    # print(currentTagging$internalTable[ctid==ctidSel & event==interval])
     flush.console()
     numTags=nrow(currentTagging$internalTable[ctid==ctidSel & event==interval])
     if(numTags==0){
@@ -499,23 +509,23 @@ output$CTInEditFrame=renderText({
       currentTagging$internalTable=rbind(currentTagging$internalTable, createEmptyTaggingRow(ctidSel, interval))
     }else{
       # sequence previously tagged, delete rows and replace with empty df
-      print(1)
+      # print(1)
       currentTagging$internalTable=currentTagging$internalTable[!(ctid==ctidSel & event==interval)]
-      print(2)
+      # print(2)
       currentTagging$internalTable=rbind(currentTagging$internalTable, createEmptyTaggingRow(ctidSel, interval))
-      print(3)
+      # print(3)
       newRow=data.table(id=0, individual="", common_name=NA,
       lao_name=NA, scientific_name=NA, group=NA,
       family=NA, order=NA, Sex=NA, Age=NA)
       currentTagging$displayTable= newRow
-      print(4)
+      # print(4)
     }
 
   })
 
-  observeEvent(input$PicInSequence, {
-    print(input$PicInSequence)
-    })
+  # observeEvent(input$PicInSequence, {
+  #   print(input$PicInSequence)
+  #   })
 
   observeEvent(input$previousEdit, {
     req(input$PicInSequence)
@@ -523,7 +533,7 @@ output$CTInEditFrame=renderText({
     seq=as.integer(input$ChooseEdit)
     fn=input$PicInSequence
     chosenCT=input$whichCT
-    print("11")
+    # print("11")
     selectedFn=loadedDataset$interval_data[location==strsplit(chosenCT, " ")[[1]][1] & ct == strsplit(chosenCT, " ")[[1]][2],fn]
     choices=tstrsplit(selectedFn, loadedDataset$imagePath)[[2]]
     if (input$PicInSequence != choices[1]) {
@@ -549,7 +559,7 @@ output$CTInEditFrame=renderText({
     seq=as.integer(input$ChooseEdit)
     fn=input$PicInSequence
     chosenCT=input$whichCT
-    print("22")
+    # print("22")
     selectedFn=loadedDataset$interval_data[location==strsplit(chosenCT, " ")[[1]][1] & ct == strsplit(chosenCT, " ")[[1]][2],fn]
     choices=tstrsplit(selectedFn, loadedDataset$imagePath)[[2]]
     if (input$PicInSequence != choices[length(choices)]) {
@@ -565,17 +575,95 @@ output$CTInEditFrame=renderText({
     if (input$PicInSequence == choices[1]) {
       shinyjs::disable("previousEdit")
     }else{
-      print("enabling previousEdit")
+      # print("enabling previousEdit")
       shinyjs::enable("previousEdit")
     }
   })
 
 
-}
+  ############################# MULTISPECIES TAGGING SECTION #############################
+  observe({
+    if(!is.null(currentTagging$internalTable) && nrow(currentTagging$internalTable) && nrow(currentTagging$internalTable[complete.cases(currentTagging$internalTable),length(unique(indID)), by=c("ctid", "event")][V1>1])){
+      showTab(inputId="tabs", target="Retagging")
+    }
+    else{
+      hideTab(inputId="tabs", target="Retagging")
+    }
+  })
 
+  mergedDtForRetag=reactiveVal()
+  observe({
+    taggedEvents_dt=copy(currentTagging$internalTable)
+    if(!is.null(taggedEvents_dt) & nrow(taggedEvents_dt)){
+      taggedEvents_dt=unique(taggedEvents_dt[,.(ctid, event, speciesID)])  # this is to remove >1 obs of the same sp
+      taggedEvents_dt[,ctidint:=paste(ctid, event)]
+      taggedEvents_dt=taggedEvents_dt[,list(.N, list(speciesID)), by=c("ctidint")][N>1]
+      intervals_dt = copy(loadedDataset$interval_data)
+      
+
+      # Root directory for photographs (adjust path as necessary)
+      old_root_dir=loadedDataset$imagePath
+      photo_root_dir = userSuppliedRootDir()
+      species_dt = copy(loadedDataset$species_data)
+      # print("PHOTO ROOT DIR")
+      # print(str(photo_root_dir))
+      # print("KKKKKK")
+      # print(photo_root_dir)
+      if(!is.null(photo_root_dir) && length(photo_root_dir) && photo_root_dir!=""){
+        # Merge the data.tables with adjusted image paths
+        setnames(taggedEvents_dt, c("V2"), c("species"))
+        #print(str(intervals_dt))
+        intervals_dt[, fn := sub(old_root_dir, "", fn, fixed = TRUE)]
+        intervals_dt[,ctidint:=paste(ctid, interval)]
+        #intervals_dt[,c("ctid", "interval"):=NULL]
+        merged_dt = merge(taggedEvents_dt, intervals_dt, by = 'ctidint')
+        mergedDtForRetag(merged_dt)
+      }
+    }
+    })
+
+  speciesForRetag=reactiveVal()
+  observe({
+    speciesForRetag(loadedDataset$species_data)
+  })
+
+  savedRetag=reactiveValues(tags=NULL, status=NULL)
+  retag=retagMultiServer("photoModule", mergedDtForRetag, speciesForRetag, appLang, savedRetag, userSuppliedRootDir)
+
+
+  ############################# SETTINGS SECTION #############################
+  observeEvent(input$languageSelection, {
+    available_languages=names(read_yaml("lang.yml"))
+    if(input$languageSelection %in% available_languages){
+      previous_ini=read.ini("sadpar.ini")
+      previous_ini$app_config$language=input$languageSelection
+      write.ini(previous_ini, "sadpar.ini")
+    }
+  })
+
+  # inactive since the button has been disabled
+  observeEvent(input$reloadApp, {
+      #shinyjs::js$refresh_page() # does not work
+      session$reload()
+  })
+
+  output$changeRootDirSettingsSectionUI=renderUI({
+    # only render this section is a dataset is loaded
+    if(!is.null(loadedDataset$metadata)){
+      tagList(
+        strong(appLang$pathTooltip),
+        verbatimTextOutput("restPath"),
+        shinyDirButton('rootDir', appLang$changeRootDirButtonLabel, appLang$changeRootDirModalTitle, icon=icon("edit", lib="font-awesome"))
+      )
+    }
+
+  })
+
+}
 
 ui <- fluidPage(
   shinyjs::useShinyjs(),
+  useSweetAlert(),
   tags$style("@import url(https://use.fontawesome.com/releases/v6.1.1/css/all.css);"),
   tags$head(
     tags$style(
@@ -584,6 +672,7 @@ ui <- fluidPage(
         top: calc(50%);
         left: calc(50%);
       }
+      hr {border-top: 1px solid #000000;}
       "
     )
   )
@@ -630,29 +719,6 @@ fluidRow(
       DTOutput("ctSummary")  
     )
   )
-#   hr(),
-#   column(6,
-#     h3(appLang$intervalsTableLabel),
-#     selectInput("whichCT", appLang$selectCTTooltip, choices=""),
-#     DTOutput('seqsummary')
-#   ),
-#   column(6,
-#     h3(appLang$speciesTableLabel),
-#     DTOutput("speciesSummary")
-#   )
-# ),
-# fluidRow(
-#   hr(),
-#   column(6,
-#     h3(appLang$stationsTableLabel),
-#     DTOutput('stationsSummary')
-#   ),
-#   column(6,
-#     h3(appLang$CTTableLabel),
-#     DTOutput("ctSummary")
-#   )
-# ),
-# hr()
 )
 ),
 tabPanel(title=appLang$sequenceTabLabel, value="Sequence",
@@ -698,9 +764,6 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
     , multiple=T, size=8, selectize=F),
     actionButton("mergeEdit", appLang$mergeSequencesTooltip),
     hr(),
-    strong(appLang$pathTooltip),
-    verbatimTextOutput("restPath"),
-    shinyDirButton('rootDir', appLang$changeRootDirButtonLabel, appLang$changeRootDirModalTitle, icon=icon("edit", lib="font-awesome")),
     selectInput("PicInSequence", appLang$listPicturesTooltip, "", size=8, selectize=F),
     actionButton("previousEdit", " ", icon=icon("chevron-up", lib="font-awesome")),
     actionButton("nextEdit", " ", icon=icon("chevron-down", lib="font-awesome")),
@@ -739,6 +802,29 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
 
 
     ))
+    ,
+    tabPanel(title=appLang$multiSpeciesTaggingTab, value="Retagging",
+      retagMultiUI("photoModule", appLang),
+      tableOutput("tags"),
+      tableOutput("status")
+    ),
+    tabPanel(title="", value="Settings",
+    h5("App settings"),
+    #fluidRow(
+      #column(4,
+    "You will need to restart the app for this change to take effect.",
+    selectInput("languageSelection", "Language", choices=names(yaml::read_yaml("lang.yml"))[-1], selected=read.ini("sadpar.ini")$app_config$language)
+      #),
+      #column(2,
+      #  actionBttn("reloadApp", "Reload app to change language", color="primary")
+      #)
+    #),
+    ,hr()
+    ,
+    h5("Dataset settings"),
+    uiOutput("changeRootDirSettingsSectionUI")
+    
+    ,icon=icon("gear"))
   )
 
 )
