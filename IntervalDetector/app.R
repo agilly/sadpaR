@@ -920,10 +920,11 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
       tableOutput("status")
     ),
     tabPanel(title="", value="Settings",
-    h5("App settings"),
+    tags$code("Version 0.3.0"),
+    h4("Application settings"),
     #fluidRow(
       #column(4,
-    "You will need to restart the app for this change to take effect.",
+    "You will need to restart the application for this change to take effect.",
     selectInput("languageSelection", "Language", choices=names(yaml::read_yaml("lang.yml"))[-1], selected=read.ini("sadpar.ini")$app_config$language)
       #),
       #column(2,
@@ -932,7 +933,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
     #),
     ,hr()
     ,
-    h5("Dataset settings"),
+    h4("Dataset settings"),
     uiOutput("changeRootDirSettingsSectionUI")
     
     ,icon=icon("gear"))
