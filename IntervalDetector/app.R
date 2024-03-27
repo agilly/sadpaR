@@ -11,7 +11,9 @@ library(shinycssloaders)
 library(ini)
 library(yaml)
 #library(shinypop)
-
+#options(shiny.error = rlang::entrace)
+#rlang::global_entrace()
+#options(rlang_backtrace_on_error_report = TRUE)
 #required to allow up to 100M load
 options(shiny.maxRequestSize=100*1024^2)
 
@@ -213,62 +215,68 @@ output$CTInEditFrame=renderText({
 
 
 
-  sexes =reactive({print(333);sapply(1:nrow(currentTagging$displayTable), function(i) input[[paste0(get_sex_sel_id(), i)]])})
-  ages  =reactive({print(444);sapply(1:nrow(currentTagging$displayTable), function(i) input[[paste0(get_age_sel_id(), i)]])})
-  observe({
-    # this means 1 sex has been changed. We do not know which one so we have to update all.
-      #a=isolate(input$num)
-      #print(sexes())
-      if(!is.null(unlist(sexes()))) {
-        currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence, Sex:=sexes()]
-      }
-      if(!is.null(unlist(ages()))) currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence, Age:=ages()]
-      if(!is.null(unlist(sexes())) | !is.null(unlist(ages()))){
-        currentInternalTable=currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence]
-        dispTable=merge(currentInternalTable, loadedDataset$species_data, by.x="speciesID", by.y="id", all.x=T)
-        dispTable=dispTable[ctid==input$tagCT & event==input$tagSequence]
-        dispTable[,c("ctid", "event", "numInd", "speciesID"):=NULL]
-        setcolorder(dispTable, c("indID", "indName", "Common Name", "Lao Name", "Species Name", "Group", "Family", "Order", "Sex", "Age"))
-        setnames(dispTable, c("id", "individual", "common_name", "lao_name", "scientific_name", "group", "family", "order", "Sex", "Age"))
-        currentTagging$displayTable=dispTable
-        existingTags=dispTable
-      }
+  #sexes =reactive({print(333);sapply(1:nrow(currentTagging$displayTable), function(i) input[[paste0(get_sex_sel_id(), i)]])})
+  #ages  =reactive({print(444);sapply(1:nrow(currentTagging$displayTable), function(i) input[[paste0(get_age_sel_id(), i)]])})
+  # observe({
+  #   # this means 1 sex has been changed. We do not know which one so we have to update all.
+  #     #a=isolate(input$num)
+  #     print("sexes")
+  #     print(sexes())
+  #     selected_ctid=input$tagCT
+  #     selected_event=input$tagSequence
+  #     print(glue("selected_ctid: {selected_ctid}, selected_event: {selected_event}"))
+  #     print("currentTagging$internalTable")
+  #     print(currentTagging$internalTable[ctid==selected_ctid & event==selected_event])
+  #     if(!is.null(unlist(sexes()))) {
+  #       currentTagging$internalTable[ctid==selected_ctid & event==selected_event, Sex:=sexes()]
+  #     }
+  #     if(!is.null(unlist(ages()))) currentTagging$internalTable[ctid==selected_ctid & event==selected_event, Age:=ages()]
+  #     if(!is.null(unlist(sexes())) | !is.null(unlist(ages()))){
+  #       currentInternalTable=currentTagging$internalTable[ctid==selected_ctid & event==selected_event]
+  #       dispTable=merge(currentInternalTable, loadedDataset$species_data, by.x="speciesID", by.y="id", all.x=T)
+  #       dispTable=dispTable[ctid==selected_ctid & event==selected_event]
+  #       dispTable[,c("ctid", "event", "numInd", "speciesID"):=NULL]
+  #       setcolorder(dispTable, c("indID", "indName", "Common Name", "Lao Name", "Species Name", "Group", "Family", "Order", "Sex", "Age"))
+  #       setnames(dispTable, c("id", "individual", "common_name", "lao_name", "scientific_name", "group", "family", "order", "Sex", "Age"))
+  #       currentTagging$displayTable=dispTable
+  #       existingTags=dispTable
+  #     }
 
-    })
-
-
-  sex_counter <- reactiveVal(0)
-  get_sex_sel_id <- reactive({
-    input$tagSequence
-    currentTagging$displayTable
-    isolate(sex_counter(sex_counter() + 1))
-    paste0("sex", sex_counter())
-  })
+  #   })
 
 
-  age_counter <- reactiveVal(0)
-  get_age_sel_id <- reactive({
-    input$tagSequence
-    currentTagging$displayTable
-    isolate(age_counter(age_counter() + 1))
-    paste0("age", age_counter())
-  })
+  # sex_counter <- reactiveVal(0)
+  # get_sex_sel_id <- reactive({
+  #   input$tagSequence
+  #   currentTagging$displayTable
+  #   isolate(sex_counter(sex_counter() + 1))
+  #   paste0("sex", sex_counter())
+  # })
+
+
+  # age_counter <- reactiveVal(0)
+  # get_age_sel_id <- reactive({
+  #   input$tagSequence
+  #   currentTagging$displayTable
+  #   isolate(age_counter(age_counter() + 1))
+  #   paste0("age", age_counter())
+  # })
 
   taggingData <- reactive({
     df <- currentTagging$displayTable
 
-    for (i in 1:nrow(df)) {
-      df$Sex[i] <- as.character(selectInput(paste0(get_sex_sel_id(), i),
-                                                           "",
-                                                           choices = c("", "Male", "Female"),
-                                                           selected=df$Sex[i],
-                                                           width = "100px"))
-      df$Age[i] <- as.character(selectInput(paste0(get_age_sel_id(), i),
-                                                           "",
-                                                           choices = c("", "Juvenile", "Subadult" ,"Adult"),
-                                                           selected=df$Age[i],
-                                                           width = "100px"))
-    }
+    # for (i in 1:nrow(df)) {
+    #   df$Sex[i] <- as.character(selectInput(paste0(get_sex_sel_id(), i),
+    #                                                        "",
+    #                                                        choices = c("", "Male", "Female"),
+    #                                                        selected=df$Sex[i],
+    #                                                        width = "100px"))
+    #   df$Age[i] <- as.character(selectInput(paste0(get_age_sel_id(), i),
+    #                                                        "",
+    #                                                        choices = c("", "Juvenile", "Subadult" ,"Adult"),
+    #                                                        selected=df$Age[i],
+    #                                                        width = "100px"))
+    # }
     ret=emptyInternalTaggingTable
 
     if(!is.null(currentTagging$internalTable) & nrow(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence])){
@@ -280,7 +288,15 @@ output$CTInEditFrame=renderText({
 
 
 
-  output$taggingTable=renderDataTable(taggingData(), options = list(autoWidth = TRUE, dom='t', paging = FALSE, ordering = FALSE), 
+  output$taggingTable=renderDataTable(
+    datatable(
+      {
+      df=taggingData()
+      setorder(df, id)
+      }
+      , rownames=F, selection = "single"
+    )
+    , options = list(autoWidth = TRUE, dom='t', paging = FALSE, ordering = FALSE), 
     escape = FALSE, server = FALSE,
   editable=list(target="column", disable=list(columns=c(0,2:10))), rownames=F,callback = JS("table.rows().every(function(i, tab, row) {
         var $this = $(this.node());
@@ -295,23 +311,27 @@ output$CTInEditFrame=renderText({
 
   observeEvent(input$addSpeciesButton, {
     isolate(table <- currentTagging$displayTable)
-    #print(currentTagging$displayTable)
+    # print("currentTagging$displayTable")
+    # print(currentTagging$displayTable)
     iselected=input$speciesSelector_rows_selected
     if(!is.null(iselected)){
       selectedRow=loadedDataset$species_data[iselected]
-      #print(selectedRow)
-      nextID=nrow(table)
-      #print(nextID)
+      # print("selectedRow")
+      # print(selectedRow)
+      #nextID=nrow(table)
+      nextID=if(nrow(table)) max(table$id)+1 else 0
+      # print("nextID")
+      # print(nextID)
       newRow=data.table(id=nextID, individual="", common_name=selectedRow[,`Common Name`],
       lao_name=selectedRow[,`Lao Name`], scientific_name=selectedRow[,`Species Name`], group=selectedRow$Group,
-      family=selectedRow$Family, order=selectedRow$Order, Sex=NA, Age=NA)
-      #print(newRow)
+      family=selectedRow$Family, order=selectedRow$Order, Sex="Unknown", Age="Unknown")
+      # print("newRow")
+      # print(newRow)
 
       currentInternalTable=currentTagging$internalTable[ctid==input$whichCTSeq & event==input$tagSequence]
-      isTaggedEmpty=nrow(currentInternalTable)==1 && unique(currentInternalTable$indID)==0
-      #print("one")
-      #print(currentInternalTable)
-      #print(nrow(currentInternalTable))
+      isTaggedEmpty=nrow(currentInternalTable)==1 && unique(currentInternalTable$numInd)==0
+      # print("currentInternalTable")
+      # print(currentInternalTable[ctid==input$whichCTSeq & event==input$tagSequence])
       if(isTaggedEmpty){
         # print("isTaggedEmpty = TRUE")
         currentTagging$internalTable=currentTagging$internalTable[!(ctid==input$whichCTSeq & event==input$tagSequence)]
@@ -319,6 +339,8 @@ output$CTInEditFrame=renderText({
       #print("two")
       #numInd must be updated all across
       addInternalTable=data.table(ctid=input$whichCTSeq, event=input$tagSequence, numInd=nrow(currentTagging$displayTable)+1, indID=newRow$id, speciesID=selectedRow$id, indName=newRow$individual, Sex=newRow$Sex, Age=newRow$Age)
+      # print("addInternalTable")
+      # print(addInternalTable)
       #print("three")
       currentTagging$internalTable=rbind(currentTagging$internalTable, addInternalTable)
       #print("four")
@@ -350,18 +372,83 @@ output$CTInEditFrame=renderText({
     #print(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence & indID==currentIdBeingModified,])
   })
 
+  # react to the selection of a row in the tagging table by enabling the individualCharacteristics UI with a sex and age selector
+  observeEvent(input$taggingTable_rows_selected, {
+    # print("taggingTable_rows_selected")
+    # print(input$taggingTable_rows_selected)
+    if(!is.null(input$taggingTable_rows_selected)){
+      shinyjs::show("selectSex")
+      shinyjs::show("selectAge")
+      selectedIndex=input$taggingTable_rows_selected
+      # if ages are defined for the selected row, set the selector to the correct value
+      if(!is.na(currentTagging$displayTable[input$taggingTable_rows_selected,]$Age))
+        updateSelectInput(session, "selectAge", selected=currentTagging$displayTable[selectedIndex,]$Age)
+      # if sexes are defined for the selected row, set the selector to the correct value
+      if(!is.na(currentTagging$displayTable[input$taggingTable_rows_selected,]$Sex))
+        updateSelectInput(session, "selectSex", selected=currentTagging$displayTable[selectedIndex,]$Sex)
+    }else{
+      shinyjs::hide("selectSex")
+      shinyjs::hide("selectAge")
+    }
+  }, ignoreNULL = FALSE)
+
+  # create a proxy for the table to allow selecting rows
+  taggingTableProxy=DT::dataTableProxy("taggingTable")
+
+  # react to changes in sex selector, update sex in internal and display tables if different from previous value
+  observeEvent(input$selectSex, {
+    # print("observeEvent input$selectSex")
+    selectedIndex=input$taggingTable_rows_selected
+    # if the selected sex is different from the previous value, update the internal and display tables
+    if(nrow(currentTagging$displayTable[input$taggingTable_rows_selected,]) && currentTagging$displayTable[selectedIndex,]$Sex != input$selectSex){
+      # print(glue("selectedIndex: {selectedIndex}, input$selectSex: {input$selectSex}"))
+      # print(currentTagging$displayTable)
+      dispTable=copy(currentTagging$displayTable)
+      dispTable[selectedIndex,Sex := input$selectSex]
+      currentTagging$displayTable=dispTable
+      currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence & indID==currentTagging$displayTable[selectedIndex]$id, Sex:=input$selectSex]
+      # the above will deselect the row, so we need to reselect it
+      DT::selectRows(proxy = taggingTableProxy, selected = selectedIndex)
+    }
+  })
+
+  # react to changes in age selector, update age in internal and display tables if different from previous value
+  observeEvent(input$selectAge, {
+    selectedIndex=input$taggingTable_rows_selected
+    # if the selected age is different from the previous value, update the internal and display tables
+    if(nrow(currentTagging$displayTable[input$taggingTable_rows_selected,]) && currentTagging$displayTable[selectedIndex,]$Age != input$selectAge){
+      dispTable=copy(currentTagging$displayTable)
+      dispTable[selectedIndex,Age := input$selectAge]
+      currentTagging$displayTable=dispTable
+      currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence & indID==currentTagging$displayTable[selectedIndex]$id, Age:=input$selectAge]
+      # the above will deselect the row, so we need to reselect it
+      DT::selectRows(proxy = taggingTableProxy, selected = selectedIndex)
+    }
+  })
+
   observeEvent(input$rmSpeciesButton, {
     iselected=input$taggingTable_rows_selected
+    selected_ctid=input$tagCT
+    selected_event=input$tagSequence
     idtoremove=currentTagging$displayTable[iselected]$id
-    idtoremove2=which(currentTagging$internalTable$ctid==input$whichCTSeq & currentTagging$internalTable$event==input$tagSequence & currentTagging$internalTable$indID %in% idtoremove)
-    if(length(idtoremove)!=length(idtoremove2) | length(idtoremove)<1){print(idtoremove);print(idtoremove2);stop("problem with idtoremove")}
+    idtoremove2=which(currentTagging$internalTable$ctid==selected_ctid & currentTagging$internalTable$event==selected_event & currentTagging$internalTable$indID %in% idtoremove)
+    # print("full table:")
+    # print(currentTagging$internalTable)
+    # print("subset table:")
+    # print(currentTagging$internalTable[ctid==selected_ctid & event==selected_event])
+    # print(glue("idtoremove: {idtoremove}"))
+    # print(glue("idtoremove2: {idtoremove2}"))
+    # print(glue("ctid: {selected_ctid}"))
+    # print(glue("event: {selected_event}"))
+    # print("haha")
+    if(length(idtoremove)!=length(idtoremove2) | length(idtoremove)<1){stop("problem with idtoremove")}
     currentTagging$internalTable=currentTagging$internalTable[-idtoremove2]
     if(!is.null(iselected)){
       currentTagging$displayTable=currentTagging$displayTable[-iselected]
     }
     # reset numbering in table
     currentTagging$displayTable[,id:=seq(0, nrow(currentTagging$displayTable)-1)]
-    currentTagging$internalTable[ctid==input$whichCTSeq & event==input$tagSequence,indID:=seq(0, nrow(currentTagging$displayTable)-1)]
+    currentTagging$internalTable[ctid==selected_ctid & event==selected_event,indID:=seq(0, nrow(currentTagging$displayTable)-1)]
   })
 
   output$durationSliderUI=renderUI({
@@ -443,6 +530,8 @@ output$CTInEditFrame=renderText({
 
   observeEvent(loadedDataset$imagePath, {if(userSuppliedRootDir()=="") userSuppliedRootDir(loadedDataset$imagePath)})
 
+  # reacting to changes in the root directory of the images
+  # unrelated to rootDir above which is the dataset root directory
   observeEvent(input$rootDir, {
     if(length(input$rootDir)) {
       userSuppliedRootDir(parseDirPath(getDrives(), input$rootDir))
@@ -451,6 +540,22 @@ output$CTInEditFrame=renderText({
     }
     }
     )
+
+  ###################################################
+  ######## ENABLE THIS TO AUTOLOAD DATA FOR DEBUGGING
+  ###################################################
+  # initLoad=reactiveVal(TRUE)
+  # observeEvent(initLoad(), {
+  #   if(initLoad()){
+  #     debugDir=reactiveVal("/mnt/t//CT_Data/NKD_2022/NKD 2022/")
+  #     debugPhotoRoot="/mnt/t//CT_Data/NKD_2022/NKD 2022/CT_raw/raw_images/"
+  #     if(checkSelectedFolder(session, input, output, debugDir, loadedDataset, currentTagging, dur, appPaths, appLang = appLang)){
+  #       loadDataset(session, input, output, debugDir, loadedDataset, currentTagging, dur, savedRetag)
+  #     }
+  #     initLoad(FALSE)
+  #   }
+  # })
+  
 
   observeEvent(input$inputFolder, {
     selectedRootDir=rootDir()
@@ -798,10 +903,16 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
       hr(),
       DTOutput('speciesSelector'),
       actionButton("addSpeciesButton", appLang$addRow, icon=icon("plus", lib="font-awesome"),
-      style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
+      style="color: #fff; background-color: #337ab7; border-color: #2e6da4"),
+      hr(),
+      h5("Individual characteristics"),
+      fluidRow(
+        column(6, selectInput("selectSex", "Sex: ", choices=c("Male","Female", "Unknown", selected="Unknown"))),
+        column(6, selectInput("selectAge", "Age: ", choices=c("Juvenile","Subadult","Adult", "Unknown", selected="Unknown")))
+      )
+    )
 
-
-    ))
+    )
     ,
     tabPanel(title=appLang$multiSpeciesTaggingTab, value="Retagging",
       retagMultiUI("photoModule", appLang),

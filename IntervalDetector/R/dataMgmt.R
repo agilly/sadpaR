@@ -116,7 +116,7 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   #setProgress(0.6, detail = paste("Reading intervals"))
   updateProgressBar(session = session, id="loadDatasetPBar", value=60, title="Reading intervals")
   interval_data=fread(paste(rootDir(), "metadata", "intervals.csv" ,sep="/"))
-  print("this is a debug version. Data will load automatically. Remove line 78 in dataMgmt.R")
+  #print("this is a debug version. Data will load automatically. Remove line 78 in dataMgmt.R")
   #interval_data[,fn:=sub("/mnt/d/CT II/NKD_2022/Data processing/raw_images/","/mnt/c/Users/R. Tidi Victor/NKD_2022/",fn, fixed=T)]
   interval_data[,ctid:=paste(location, ct)]
   choices=unique(interval_data$ctid)

@@ -22,14 +22,52 @@ fi
 
 
 # ID of the sequence must be the field below
-FIELD=5
-numct=$(tail -n+2 $fn | cut -d, -f3,4 | sort -u | wc -l)
-numevent=$(tail -n+2 $fn | cut -d, -f3-5 | sort -u | wc -l)
+#FIELD=5
+# error if file doesn't have comma-separated values
+if [[ -z "$(head -1 $fn | grep ,)" ]]; then
+  echo "Error: input file must be comma-separated."
+  echo
+  echo "Usage: ./makegifs.sh input.csv out.filename.base"
+  echo
+  exit 1
+fi
+
+# find the index of FIELD by looking in the header for "interval"
+FIELD=$(head -1 $fn | tr ',' '\n' | grep -n interval | cut -d: -f1)
+# exit if not found
+if [[ -z "$FIELD" ]]; then
+  echo "Error: could not find the field index for the sequence ID."
+  echo "       Please check the header of the input file."
+  echo
+  echo "Header must contain at least : fn, interval, location, ct"
+  echo
+  exit 1
+fi
+
+echo Detected sequence ID in field $FIELD.
+
+# detect the index of location and ct in the same way
+FIELDCT=$(head -1 $fn | tr ',' '\n' | grep -w -n ct | cut -d: -f1)
+FIELDLOC=$(head -1 $fn | tr ',' '\n' | grep -w -n location | cut -d: -f1)
+# exit if not found
+if [[ -z "$FIELDCT" || -z "$FIELDLOC" ]]; then
+  echo "Error: could not find the field index for the camera trap ID or location."
+  echo "       Please check the header of the input file."
+  echo
+  echo "Header must contain at least : fn, interval, location, ct"
+  echo
+  exit 1
+fi
+echo Detected camera trap ID in field $FIELDCT and location in field $FIELDLOC.
+
+numct=$(tail -n+2 $fn | cut -d, -f$FIELDLOC,$FIELDCT | sort -u | wc -l)
+numevent=$(tail -n+2 $fn | cut -d, -f$FIELDLOC,$FIELDCT,$FIELD | sort -u | wc -l)
 echo "Detected $numevent events across $numct camera traps."
+
 #numevent=$(tail -1 $fn | cut -f $FIELD -d,)
 mkdir -p $on.sequences
 mkdir -p tmp
-tail -n+2 $fn | cut -d, -f3,4 | sort -u > $on.sequences/unique.ct.txt;
+tail -n+2 $fn | cut -d, -f$FIELDLOC,$FIELDCT | sort -u > $on.sequences/unique.ct.txt;
 for ct in $(cat $on.sequences/unique.ct.txt);
 do
   ctnm=${ct/,/.}
@@ -37,7 +75,7 @@ do
     mkdir -p $on.sequences/$ctnm
     eventct=$(grep -w "$ct" $fn | cut -d, -f $FIELD | sort -n | tail -1)
   for i in $(seq 0 $eventct); do
-    numimage=$(grep -w "$ct" $fn | awk -F, '$NF=='$i | wc -l)
+    numimage=$(grep -w "$ct" $fn | awk -F, '$'$FIELD'=='$i | wc -l)
     if [[ -s "$on.sequences/$ctnm/sequence.$i.gif" ]]; then
       echo -ne "Event $(( i + 1 )) of $(( eventct + 1 )) for camera $ctnm with $numimage images exists. Skipping.         \r"
       continue;
