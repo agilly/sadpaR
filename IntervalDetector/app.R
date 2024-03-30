@@ -67,6 +67,150 @@ basepath=""
 
 
 server <- function(input, output, session) {
+
+  # observe selection of species row in species table
+  observeEvent(input$speciesSummary_rows_selected, {
+    if(!is.null(input$speciesSummary_rows_selected)){
+      shinyjs::show("editSpeciesButton")
+      # update select input choices for group, family, and order based on the unique values in the loaded dataset
+      updateSelectizeInput(session, "group", choices=sort(unique(loadedDataset$species_data$Group)), options = list(create = TRUE))
+      updateSelectizeInput(session, "family", choices=sort(unique(loadedDataset$species_data$Family)), options = list(create = TRUE))
+      updateSelectizeInput(session, "order", choices=sort(unique(loadedDataset$species_data$Order)), options = list(create = TRUE))
+    }else{
+      shinyjs::hide("editSpeciesButton")
+    }
+  }, ignoreNULL = FALSE)
+
+  #hide the species editing inputs
+  shinyjs::hide("commonName")
+  shinyjs::hide("laoName")
+  shinyjs::hide("scientificName")
+  shinyjs::hide("group")
+  shinyjs::hide("family")
+  shinyjs::hide("order")
+  shinyjs::hide("saveSpeciesButton")
+  shinyjs::hide("cancelSpeciesButton")
+
+  speciesToModify=reactiveVal(NULL)
+
+  observeEvent(input$editSpeciesButton, {
+    if(!is.null(input$speciesSummary_rows_selected)){
+      # show the inputs
+      shinyjs::show("commonName")
+      shinyjs::show("laoName")
+      shinyjs::show("scientificName")
+      shinyjs::show("group")
+      shinyjs::show("family")
+      shinyjs::show("order")
+      shinyjs::show("saveSpeciesButton")
+      shinyjs::show("cancelSpeciesButton")
+      selectedRow=loadedDataset$species_data[input$speciesSummary_rows_selected]
+      updateTextInput(session, "commonName", value=selectedRow$`Common Name`)
+      updateTextInput(session, "laoName", value=selectedRow$`Lao Name`)
+      updateTextInput(session, "scientificName", value=selectedRow$`Species Name`)
+      updateSelectizeInput(session, "group", selected=selectedRow$Group)
+      updateSelectizeInput(session, "family", selected=selectedRow$Family)
+      updateSelectizeInput(session, "order", selected=selectedRow$Order)
+      speciesToModify(loadedDataset$species_data[id==selectedRow$id]$id)
+    }
+  })
+
+  observeEvent(input$addSpeciesButton, {
+    shinyjs::show("commonName")
+    shinyjs::show("laoName")
+    shinyjs::show("scientificName")
+    shinyjs::show("group")
+    shinyjs::show("family")
+    shinyjs::show("order")
+    shinyjs::show("saveSpeciesButton")
+    shinyjs::show("cancelSpeciesButton")
+    updateTextInput(session, "commonName", value="")
+    updateTextInput(session, "laoName", value="")
+    updateTextInput(session, "scientificName", value="")
+    updateSelectizeInput(session, "group", selected="")
+    updateSelectizeInput(session, "family", selected="")
+    updateSelectizeInput(session, "order", selected="")
+    speciesToModify(NULL)
+  })
+
+  observeEvent(input$cancelSpeciesButton, {
+    shinyjs::hide("commonName")
+    shinyjs::hide("laoName")
+    shinyjs::hide("scientificName")
+    shinyjs::hide("group")
+    shinyjs::hide("family")
+    shinyjs::hide("order")
+    shinyjs::hide("saveSpeciesButton")
+    shinyjs::hide("cancelSpeciesButton")
+    speciesToModify(NULL)
+  })
+
+  observeEvent(input$saveSpeciesButton, {
+      # check that all fields are filled else send sweetalert
+      if(input$commonName=="" | input$laoName=="" | input$scientificName=="" | input$group=="" | input$family=="" | input$order==""){
+        sendSweetAlert(session, "Please fill all fields", type="error")
+        return()
+      }
+      print("saveSpeciesButton")
+      print("speciestomodify")
+      print(speciesToModify())
+      if(!is.null(speciesToModify())){
+
+      # get the id
+      edited_id=speciesToModify()
+      print(glue("Editing species with id {edited_id}"))
+      # create the row
+      selectedRow=data.table(id=edited_id, `Common Name`=input$commonName, `Lao Name`=input$laoName, `Species Name`=input$scientificName, Group=input$group, Family=input$family, Order=input$order)
+      print(selectedRow)
+      species_excluding_row=loadedDataset$species_data[id!=edited_id]
+      species_excluding_row=rbind(species_excluding_row, selectedRow)
+      setorder(species_excluding_row, id)
+      new_species=species_excluding_row
+    }else{
+      # create next id
+      new_id=if(nrow(loadedDataset$species_data)) max(loadedDataset$species_data$id)+1 else 1
+      print(glue("Adding species with new id {new_id}"))
+      # add a new row
+      newRow=data.table(id=new_id, `Common Name`=input$commonName, `Lao Name`=input$laoName, `Species Name`=input$scientificName, Group=input$group, Family=input$family, Order=input$order)
+      new_species=rbind(loadedDataset$species_data, newRow)
+    }
+    # backup the old csv to species.DDMMYYYY.HHMMSS.csv
+    oldcsvpath=glue("{appPaths$dataDirRoot}/metadata/species.{format(Sys.time(), '%d%m%Y.%H%M%S')}.csv")
+    print(111)
+    print(oldcsvpath)
+    csvpath=glue("{appPaths$dataDirRoot}/metadata/species.csv")
+    print(222)
+    print(csvpath)
+    if(.Platform$OS.type=="windows") {
+      oldcsvpath=gsub("/", "\\", oldcsvpath, fixed=T)
+      csvpath=gsub("/", "\\", csvpath, fixed=T)
+    }
+    successSaving=FALSE
+    tryCatch({
+      print(glue("Saving species to {csvpath}, backing up to {oldcsvpath}"))
+      fwrite(loadedDataset$species_data, oldcsvpath)
+      loadedDataset$species_data=new_species
+      # write the new csv
+      fwrite(loadedDataset$species_data, csvpath)
+      successSaving=TRUE
+    }, error=function(e){
+      # send sweetalert error
+      sendSweetAlert(session, glue("Error saving species"), glue("{e$message}"))
+    })
+    # send sweetalert success
+    if(successSaving) sendSweetAlert(session, "Species saved", type="success")
+    success=FALSE
+    shinyjs::hide("commonName")
+    shinyjs::hide("laoName")
+    shinyjs::hide("scientificName")
+    shinyjs::hide("group")
+    shinyjs::hide("family")
+    shinyjs::hide("order")
+    shinyjs::hide("saveSpeciesButton")
+    shinyjs::hide("cancelSpeciesButton")
+    speciesToModify(NULL)
+  })
+
   #shinyOptions(progress.style="old")
   loadedDataset <-reactiveValues(interval_data=NULL, species_data=NULL, metadata=NULL, ct=NULL, stations=NULL, imagePath=NULL)
   dur <- reactiveValues(durations=NULL)
@@ -198,7 +342,12 @@ output$CTInEditFrame=renderText({
 
 
 
-  output$speciesSummary=renderDataTable(loadedDataset$species_data)
+  output$speciesSummary=renderDataTable({
+    datatable(
+      loadedDataset$species_data
+      , selection = "single"
+    )
+  })
 
   output$frame=renderImage({
     #print(basepath)
@@ -518,7 +667,7 @@ output$CTInEditFrame=renderText({
     return(drives)
   }
 
-  appPaths=reactiveValues(taggingCSV="", sequenceDir="")
+  appPaths=reactiveValues(taggingCSV="", sequenceDir="", dataDirRoot="")
 
 
 
@@ -815,7 +964,31 @@ fluidRow(
       DTOutput('seqsummary')
       ),
     tabPanel(appLang$speciesTableLabel, 
-      DTOutput("speciesSummary")
+      DTOutput("speciesSummary"),
+      #button to add species and button to edit species
+      actionButton("addSpeciesButton", appLang$addSpeciesButtonLabel, icon=icon("plus", lib="font-awesome")),
+      actionButton("editSpeciesButton", appLang$editSpeciesButtonLabel, icon=icon("pen-to-square", lib="font-awesome")),
+      # Inputs for adding/editing species
+      fluidRow(
+        column(4, 
+          textInput("commonName", appLang$commonNameLabel),
+          textInput("laoName", appLang$laoNameLabel)
+        ),
+        column(4,
+          textInput("scientificName", appLang$scientificNameLabel),
+          selectizeInput("group", appLang$groupLabel, choices=c(), options = list(create = TRUE))
+        ),
+        column(4,
+          selectizeInput("family", appLang$familyLabel, choices=c(), options = list(create = TRUE)),
+          selectizeInput("order", appLang$orderLabel, choices=c(), options = list(create = TRUE))
+        )
+        ),
+        # save bttn
+        fluidRow(
+          column(2,actionBttn("saveSpeciesButton", appLang$saveSpeciesButtonLabel, icon = icon("save"), color = "primary", style = "fill", size = "sm"))
+          ,
+          column(1, actionBttn("cancelSpeciesButton", appLang$cancelSpeciesButtonLabel, icon = icon("times-circle"), color = "danger", style = "fill", size = "sm"))
+        )#,style = "display: flex; flex-wrap: nowrap; width: min-content;")
       ),
     tabPanel(appLang$stationsTableLabel,
       DTOutput('stationsSummary')  
@@ -920,7 +1093,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
       tableOutput("status")
     ),
     tabPanel(title="", value="Settings",
-    tags$code("Version 0.3.0"),
+    tags$code("Version 0.4.0"),
     h4("Application settings"),
     #fluidRow(
       #column(4,

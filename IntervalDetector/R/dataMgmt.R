@@ -90,6 +90,7 @@ checkSelectedFolder=function(session, input, output, rootDir, loadedDataset, cur
   
 
     #return(F)
+    appPaths$dataDirRoot=rootDir()
   
 
   return(T)

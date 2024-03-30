@@ -83,6 +83,18 @@ English:
   noPhotosInSelection: "No photo available for the selected criteria."
   multiSpeciesTaggingTab: "Multispecies events"
   warning: "Warning"
+  addSpeciesButtonLabel: "Add species"
+  removeSpeciesButtonLabel: "Edit species"
+  commonNameLabel: "Common name"
+  laoNameLabel: "Lao name"
+  scientificNameLabel: "Scientific name"
+  groupLabel: "Group"
+  familyLabel: "Family"
+  orderLabel: "Order"
+  saveSpeciesButtonLabel: "Save species"
+  cancelSpeciesButtonLabel: "Cancel"
+  editSpeciesButtonLabel: "Edit species entry"
+
 
 ລາວ:  
   appName  : "ໂປແກັມ ຈໍາແນກຂໍ້ມູນຈາກກ້ອງດັກຖ່າຍພາບສັດປ່າ"
