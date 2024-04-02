@@ -83,7 +83,7 @@ English:
   noPhotosInSelection: "No photo available for the selected criteria."
   multiSpeciesTaggingTab: "Multispecies events"
   warning: "Warning"
-  addSpeciesButtonLabel: "Add species"
+  addSpeciesToListButtonLabel: "Add species"
   removeSpeciesButtonLabel: "Edit species"
   commonNameLabel: "Common name"
   laoNameLabel: "Lao name"

@@ -115,7 +115,7 @@ server <- function(input, output, session) {
     }
   })
 
-  observeEvent(input$addSpeciesButton, {
+  observeEvent(input$addSpeciesToListButton, {
     shinyjs::show("commonName")
     shinyjs::show("laoName")
     shinyjs::show("scientificName")
@@ -693,17 +693,17 @@ output$CTInEditFrame=renderText({
   ###################################################
   ######## ENABLE THIS TO AUTOLOAD DATA FOR DEBUGGING
   ###################################################
-  # initLoad=reactiveVal(TRUE)
-  # observeEvent(initLoad(), {
-  #   if(initLoad()){
-  #     debugDir=reactiveVal("/mnt/t//CT_Data/NKD_2022/NKD 2022/")
-  #     debugPhotoRoot="/mnt/t//CT_Data/NKD_2022/NKD 2022/CT_raw/raw_images/"
-  #     if(checkSelectedFolder(session, input, output, debugDir, loadedDataset, currentTagging, dur, appPaths, appLang = appLang)){
-  #       loadDataset(session, input, output, debugDir, loadedDataset, currentTagging, dur, savedRetag)
-  #     }
-  #     initLoad(FALSE)
-  #   }
-  # })
+  initLoad=reactiveVal(TRUE)
+  observeEvent(initLoad(), {
+    if(initLoad()){
+      debugDir=reactiveVal("/mnt/t//CT_Data/NKD_2022/NKD 2022/")
+      debugPhotoRoot="/mnt/t//CT_Data/NKD_2022/NKD 2022/CT_raw/raw_images/"
+      if(checkSelectedFolder(session, input, output, debugDir, loadedDataset, currentTagging, dur, appPaths, appLang = appLang)){
+        loadDataset(session, input, output, debugDir, loadedDataset, currentTagging, dur, savedRetag)
+      }
+      initLoad(FALSE)
+    }
+  })
   
 
   observeEvent(input$inputFolder, {
@@ -966,7 +966,7 @@ fluidRow(
     tabPanel(appLang$speciesTableLabel, 
       DTOutput("speciesSummary"),
       #button to add species and button to edit species
-      actionButton("addSpeciesButton", appLang$addSpeciesButtonLabel, icon=icon("plus", lib="font-awesome")),
+      actionButton("addSpeciesToListButton", appLang$addSpeciesToListButtonLabel, icon=icon("plus", lib="font-awesome")),
       actionButton("editSpeciesButton", appLang$editSpeciesButtonLabel, icon=icon("pen-to-square", lib="font-awesome")),
       # Inputs for adding/editing species
       fluidRow(
