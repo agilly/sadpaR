@@ -1093,7 +1093,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
       tableOutput("status")
     ),
     tabPanel(title="", value="Settings",
-    tags$code("Version 0.4.0"),
+    tags$code("Version 0.5.0"),
     h4("Application settings"),
     #fluidRow(
       #column(4,
