@@ -693,17 +693,19 @@ output$CTInEditFrame=renderText({
   ###################################################
   ######## ENABLE THIS TO AUTOLOAD DATA FOR DEBUGGING
   ###################################################
-  initLoad=reactiveVal(TRUE)
-  observeEvent(initLoad(), {
-    if(initLoad()){
-      debugDir=reactiveVal("/mnt/t//CT_Data/NKD_2022/NKD 2022/")
-      debugPhotoRoot="/mnt/t//CT_Data/NKD_2022/NKD 2022/CT_raw/raw_images/"
-      if(checkSelectedFolder(session, input, output, debugDir, loadedDataset, currentTagging, dur, appPaths, appLang = appLang)){
-        loadDataset(session, input, output, debugDir, loadedDataset, currentTagging, dur, savedRetag)
-      }
-      initLoad(FALSE)
-    }
-  })
+  # initLoad=reactiveVal(TRUE)
+  # observeEvent(initLoad(), {
+  #   if(initLoad()){
+  #     #debugDir=reactiveVal("/mnt/t//CT_Data/NKD_2022/NKD 2022/")
+  #     debugDir=reactiveVal("/mnt/t//CT_Data/sus_scrofa/sus_scrofa.sadpaR_data")
+  #     #debugPhotoRoot="/mnt/t//CT_Data/NKD_2022/NKD 2022/CT_raw/raw_images/"
+  #     debugPhotoRoot="/mnt/t//CT_Data/sus_scrofa/renamed"
+  #     if(checkSelectedFolder(session, input, output, debugDir, loadedDataset, currentTagging, dur, appPaths, appLang = appLang)){
+  #       loadDataset(session, input, output, debugDir, loadedDataset, currentTagging, dur, savedRetag)
+  #     }
+  #     initLoad(FALSE)
+  #   }
+  # })
   
 
   observeEvent(input$inputFolder, {
@@ -1093,7 +1095,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
       tableOutput("status")
     ),
     tabPanel(title="", value="Settings",
-    tags$code("Version 0.6.0"),
+    tags$code("Version 0.7.0"),
     h4("Application settings"),
     #fluidRow(
       #column(4,

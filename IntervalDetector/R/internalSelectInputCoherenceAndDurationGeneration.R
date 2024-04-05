@@ -49,6 +49,7 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
     if(iselected!=""){
       choices=unique((loadedDataset$interval_data)[ctid==iselected]$interval)
       updateSelectInput(session, inputId="tagSequence", choices=choices)
+      updateSelectInput(session, inputId="ChooseEdit", choices=choices, selected=choices[1])
     }
     if(iselected!=input$whichCT){
       updateSelectInput(session, inputId="whichCT", selected=input$whichCTSeq)
