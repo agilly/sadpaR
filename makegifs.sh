@@ -90,8 +90,7 @@ do
         cp "$ff" tmp/$j.jpg;
         j=$(( j + 1 ));
       done;
-      ffmpeg -framerate 4 -i tmp/%d.jpg -loop -1 -vf scale=-1:650 \
-      -vf "drawtext=fontfile=Lato-Regular.ttf:text='downsampled video, one in every "$downs" image shown':fontcolor=red:fontsize=60:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/10" \
+      ffmpeg -framerate 4 -i tmp/%d.jpg -loop -1 -vf "drawtext=fontfile=Lato-Regular.ttf:text='downsampled video, one in every "$downs" image shown':fontcolor=red:fontsize=60:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/10,scale=-1:650" \
       $on.sequences/$ctnm/sequence.$i.gif >/dev/null 2>&1;
       #exit
       continue;
@@ -101,10 +100,11 @@ do
       rm tmp/*;
     fi
     j=0;awk -F, '$'$FIELD'=='$i'{print $1}' <(grep -w "$ct" $fn)| while read ff; do
-      cp "$ff" tmp/$j.jpg;
-      j=$(( j + 1 ));
+     cp "$ff" tmp/$j.jpg;
+     j=$(( j + 1 ));
     done;
     ffmpeg -framerate 2 -i tmp/%d.jpg -loop -1 -vf scale=-1:650 $on.sequences/$ctnm/sequence.$i.gif >/dev/null 2>&1;
+    echo Skipping $ctnm/sequence.$i.gif
   done
   echo
 done
