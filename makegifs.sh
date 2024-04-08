@@ -83,16 +83,27 @@ do
     if [[ $numimage -gt $SKIP ]]; then
       echo -ne "Event $(( i + 1 )) of $(( eventct + 1 )) for camera $ctnm has $numimage images, greater than $SKIP. Downsampling.         \n"
       downs=$(echo $numimage / 100 | bc)
+      # if downs is 1, set it to 2
+      if [[ $downs -eq 1 ]]; then
+        downs=2
+      fi
       if [[ ! -z "$(find tmp -type f)" ]]; then
         rm tmp/*;
       fi
+      #echo "downsampling $downs FIELD $FIELD i $i ct $ct fn $fn"
       j=0;awk -F, '($'$FIELD'=='$i' && NR % '$downs' == 1){print $1}' <(grep -w "$ct" $fn)| while read ff; do
+        #echo $ff
         cp "$ff" tmp/$j.jpg;
         j=$(( j + 1 ));
       done;
       ffmpeg -framerate 4 -i tmp/%d.jpg -loop -1 -vf "drawtext=fontfile=Lato-Regular.ttf:text='downsampled video, one in every "$downs" image shown':fontcolor=red:fontsize=60:box=1:boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/10,scale=-1:650" \
       $on.sequences/$ctnm/sequence.$i.gif >/dev/null 2>&1;
-      #exit
+      # if the command failed, exit the program
+      if [[ $? -ne 0 ]]; then
+        echo "Error: ffmpeg failed to create gif $on.sequences/$ctnm/sequence.$i.gif. Exiting."
+        exit 1
+      fi
+      echo $on.sequences/$ctnm/sequence.$i.gif >> downsamples.txt
       continue;
     fi
     echo -ne "Processing event $(( i + 1 )) of $(( eventct + 1 )) for camera $ctnm with $numimage images.            \r"
@@ -104,7 +115,7 @@ do
      j=$(( j + 1 ));
     done;
     ffmpeg -framerate 2 -i tmp/%d.jpg -loop -1 -vf scale=-1:650 $on.sequences/$ctnm/sequence.$i.gif >/dev/null 2>&1;
-    echo Skipping $ctnm/sequence.$i.gif
+#    echo Skipping $ctnm/sequence.$i.gif
   done
   echo
 done
