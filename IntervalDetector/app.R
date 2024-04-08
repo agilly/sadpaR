@@ -263,11 +263,11 @@ server <- function(input, output, session) {
       #print("observe previous called")
       updateSelectInput(session, inputId = "sequence", selected = newSelection)
     }
-    if (as.integer(input$sequence) == choices[1]) {
-      shinyjs::disable("previous")
-    }else{
-      shinyjs::enable("previous")
-    }
+    # if (as.integer(input$sequence) == choices[1]) {
+    #   shinyjs::disable("previous")
+    # }else{
+    #   shinyjs::enable("previous")
+    # }
   })
 
 
@@ -285,11 +285,11 @@ server <- function(input, output, session) {
       updateSelectInput(session, inputId = "sequence", selected = newSelection)
       updateSelectInput(session, inputId = "tagSequence", selected=newSelection)
     }
-    if (as.integer(input$sequence) == choices[length(choices)]) {
-      shinyjs::disable("nextButton")
-    }else{
-      shinyjs::enable("nextButton")
-    }
+    # if (as.integer(input$sequence) == choices[length(choices)]) {
+    #   shinyjs::disable("nextButton")
+    # }else{
+    #   shinyjs::enable("nextButton")
+    # }
   })
 
 

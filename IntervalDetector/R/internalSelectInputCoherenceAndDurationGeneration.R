@@ -61,7 +61,7 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
 
   observeEvent(input$sequence, {
     iselected=input$sequence
-    #print("sequence observe called")
+    print("sequence observe called")
     #print(paste("sequence is ", iselected, ", tagsequence is", input$tagSequence))
     #print(paste("currently selected", input$tabs))
     if(input$tagSequence!=iselected & input$tabs=="Sequence"){
@@ -72,6 +72,29 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
         updateSelectInput(session, inputId="ChooseEdit", selected=iselected)
       }
     }
+
+    if(!("ctid" %in% names(loadedDataset$interval_data))){
+      print("ctid not found in loadedDataset$interval_data")
+      return()
+    }
+
+    sequenceChoices=unique((loadedDataset$interval_data)[ctid==input$whichCTSeq]$interval)
+    print(glue("max sequence is {max(sequenceChoices)}"))
+    print(glue("selected sequence is {iselected}"))
+    # if the selected sequence is the last of the CT, disable the next button
+    if(iselected==max(sequenceChoices)){
+      shinyjs::disable("nextButton")
+    }else{
+      shinyjs::enable("nextButton")
+    }
+    # if the selected sequence is the first of the CT, disable the previous button
+    if(iselected==min(sequenceChoices)){
+      shinyjs::disable("previous")
+    }else{
+      shinyjs::enable("previous")
+    }
+
+
     #else{
      # print("this did nothing")
     #}
