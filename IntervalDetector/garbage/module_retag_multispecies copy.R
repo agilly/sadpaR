@@ -1,5 +1,4 @@
 VERBOSE=T
-IMG_PER_PAGE=10
 retagMultiUI = function(id, appLang) {
   ns = NS(id)
   tagList(
@@ -34,23 +33,6 @@ retagMultiUI = function(id, appLang) {
           color = "danger"
           ),
         uiOutput(ns("photos_display")),
-        fluidRow(
-          column(1,
-          actionBttn(
-            inputId = ns("previousPage"),
-            icon = icon("arrow-left")
-            )
-          ),
-          column(2,
-          selectInput(ns("pageSelect"), "Page", choices = 1)
-          ),
-          column(1, 
-          actionBttn(
-            inputId = ns("nextPage"),
-            icon = icon("arrow-right")
-            )
-          )
-        ),
         actionBttn(
           inputId = ns("markAsComplete"),
           label = "mark as complete", 
@@ -98,26 +80,6 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
         userSelections(savedRetag$tags)
       } 
       dataToDisplay(merged_dt())
-    })
-    
-    numberOfPages = reactive({
-      req(dataToDisplay())
-      #if(!nrow(dataToDisplay)) return(1)
-      nrow(dataToDisplay()[ctidint == paste(input$ctid_select, input$interval_select)]) %/% IMG_PER_PAGE + 1
-    })
-
-    # previous page button observer. Decreases the page number by 1 except if it is already 1
-    observeEvent(input$previousPage, {
-      if(input$pageSelect > 1){
-        updateSelectInput(session, "pageSelect", choices=1:numberOfPages(), selected = as.integer(input$pageSelect) - 1)
-      }
-    })
-
-    # next page button observer. Increase the page number by 1 except if it is already the last page
-    observeEvent(input$nextPage, {
-      if(input$pageSelect < numberOfPages()){
-        updateSelectInput(session, "pageSelect", choices=1:numberOfPages(), selected = as.integer(input$pageSelect) + 1)
-      }
     })
 
     observe({
@@ -178,21 +140,17 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
   refreshBtnColors=function(){
     if(VERBOSE) print("REFRESH COL CALLED")
     req(eventsStatus())
-    #print(1)
+    print(1)
     stati=eventsStatus()
-    #print(2)
+    print(2)
     this_status=stati[ctid == input$ctid_select & interval == input$interval_select]$status
-    #print(3)
+    print(3)
     #if(!length(this_status)) this_status="wip"  # if the event is not in the status table, it is a new event
-    #print(4)
+    print(4)
     if(VERBOSE) print(glue("this status: {this_status} (ctid: {input$ctid_select}, interval: {input$interval_select})"))
     if(this_status=="wip") this_status="primary" else if (this_status=="complete") this_status="success" else this_status="danger"
     if(VERBOSE) print(glue("this status: {this_status} (ctid: {input$ctid_select}, interval: {input$interval_select})"))
     selected_rows = dataToDisplay()[ctidint == paste(input$ctid_select, input$interval_select)]
-    # add pages
-    selected_rows[,page:=rep(1:(nrow(selected_rows) %/% IMG_PER_PAGE + 1), each=IMG_PER_PAGE)[1:nrow(selected_rows)]]
-    # restrict to current page
-    selected_rows=selected_rows[page==input$pageSelect]
     if(VERBOSE) print(selected_rows)
     checkbox_ids=paste0(file_path_sans_ext(basename(unique(selected_rows$fn))),  "_species")
     # replace parentheses with underscores
@@ -248,8 +206,6 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
             speciesNames=speciesNames[,.(id, friendlyName)]
             speciesInSequence(speciesNames)
             initState(T)
-            # update the page select
-            updateSelectInput(session, "pageSelect", choices=1:numberOfPages(), selected=1)
         }
     }, ignoreInit=T
     )
@@ -262,11 +218,6 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
     if(!is.null(selected_interval) && !is.na(selected_interval)){
         if(VERBOSE) print("DRAW CALLED")
         selected_rows = dataToDisplay()[ctidint == paste(input$ctid_select, input$interval_select)]
-        if(VERBOSE) print(glue("selected rows: {nrow(selected_rows)}"))
-        selected_rows[,page:=rep(1:(nrow(selected_rows) %/% IMG_PER_PAGE + 1), each=IMG_PER_PAGE)[1:nrow(selected_rows)]]
-        if(VERBOSE) print(selected_rows)
-        
-        selected_rows=selected_rows[page==input$pageSelect]
         if (nrow(selected_rows) > 0) {
         species_options = setNames(as.character(speciesInSequence()$id), speciesInSequence()$friendlyName) # Get the species names for checkboxes
         image_output_list = lapply(unique(selected_rows$fn), function(filename, species_options) {
@@ -348,12 +299,7 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
                 triggerRedraw()
               }else{
                 statusToChangeTo=ifelse(eventIsMarkedForAttention, "attention", "wip")
-                # if the event is different from the current status, we need to update the status
-                if(current_status[ctid == selected_ctid & interval == selected_interval]$status != statusToChangeTo){
-                  if(VERBOSE) print("CHANGING STATUS from {current_status[ctid == selected_ctid & interval == selected_interval]$status} to {statusToChangeTo}")
-                  changeEventStatus(selected_ctid, selected_interval, statusToChangeTo)
-                }
-                  
+                changeEventStatus(selected_ctid, selected_interval, statusToChangeTo)
                 refreshBtnColors()
               }
                 
@@ -383,8 +329,8 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
       selected_rows = dataToDisplay()[ctidint == paste(input$ctid_select, input$interval_select)]
       if (nrow(selected_rows) > 0) {
         selected_rows=selected_rows
-        # if there are more than 10 rows and the thumbnails exist and the requested size is <1000, use the thumbnails
-        if(nrow(selected_rows) > 10 && input$imgSize < 1000){
+        # if there are more than 10 rows and the thumbnails exist, use them
+        if(nrow(selected_rows) > 10){
           thumbdir=file.path(dataDir(), "thumbnails")
           selected_rows[,thumbnail_path:=file.path(thumbdir, fn)]
           selected_rows[,thumbnail_exists:=file.exists(thumbnail_path)]

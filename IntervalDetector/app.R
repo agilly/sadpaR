@@ -10,6 +10,7 @@ library(shinyWidgets)
 library(shinycssloaders)
 library(ini)
 library(yaml)
+library(imager)
 #library(shinypop)
 #options(shiny.error = rlang::entrace)
 #rlang::global_entrace()
@@ -455,7 +456,20 @@ output$CTInEditFrame=renderText({
       Shiny.unbindAll(table.table().node());
       Shiny.bindAll(table.table().node());"))
 
-  output$speciesSelector=renderDataTable(loadedDataset$species_data, options = list(autoWidth = TRUE), filter = list(position = 'top'), rownames=F, selection="single")
+  output$speciesSelector=renderDataTable(
+    datatable(
+      {
+      speciesOrder=currentTagging$internalTable[,.N, by=speciesID]
+      print(speciesOrder)
+      print("==============")
+      print(loadedDataset$species_data)
+      df=merge(loadedDataset$species_data, speciesOrder, by.x="id", by.y="speciesID", all.x=T)
+      setorder(df, -N, na.last=T)
+      df[,N:=NULL]
+      df        
+      }
+      )
+    , options = list(autoWidth = TRUE), filter = list(position = 'top'), rownames=F, selection="single")
 
 
   observeEvent(input$addSpeciesButton, {
@@ -577,6 +591,7 @@ output$CTInEditFrame=renderText({
 
   observeEvent(input$rmSpeciesButton, {
     iselected=input$taggingTable_rows_selected
+    if(!length(iselected)) return()
     selected_ctid=input$tagCT
     selected_event=input$tagSequence
     idtoremove=currentTagging$displayTable[iselected]$id
@@ -884,7 +899,7 @@ output$CTInEditFrame=renderText({
   })
 
   savedRetag=reactiveValues(tags=NULL, status=NULL)
-  retag=retagMultiServer("photoModule", mergedDtForRetag, speciesForRetag, appLang, savedRetag, userSuppliedRootDir)
+  retag=retagMultiServer("photoModule", mergedDtForRetag, speciesForRetag, appLang, savedRetag, userSuppliedRootDir, rootDir)
 
 
   ############################# SETTINGS SECTION #############################
@@ -915,6 +930,13 @@ output$CTInEditFrame=renderText({
 
   })
 
+  observeEvent(input$generateThumbnailsButton, {
+    if(!is.null(loadedDataset$metadata)){
+      progressSweetAlert(session = session, id="generateThumbnailsPBar", value=0, display_pct=T, title="Generating thumbnails", status="warning", striped=T, size="l")
+      generateThumbnails(data_dir=rootDir(), old_image_root = loadedDataset$imagePath, new_image_root = userSuppliedRootDir(), session=session)
+      closeSweetAlert(session = session)
+    }
+  })
 }
 
 ui <- fluidPage(
@@ -1110,8 +1132,11 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
     ,
     h4("Dataset settings"),
     uiOutput("changeRootDirSettingsSectionUI")
-    
-    ,icon=icon("gear"))
+    ,icon=icon("gear"),
+    hr(),
+    h4("Generate thumbnails"),
+    actionButton("generateThumbnailsButton", "Generate thumbnails", icon=icon("image", lib="font-awesome"))
+    )
   )
 
 )
