@@ -1,4 +1,4 @@
-VERBOSE=T
+VERBOSE=F
 IMG_PER_PAGE=10
 retagMultiUI = function(id, appLang) {
   ns = NS(id)
@@ -253,6 +253,10 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
         }
     }, ignoreInit=T
     )
+
+    # reactive to store observers for checkboxes
+    checkboxes_and_observers = reactiveValues()
+
     # Display photographs based on selection
     output$photos_display = renderUI({
       req(dataToDisplay())
@@ -304,63 +308,69 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
                 status=pre_existing_status,
                 selected=pre_existing_selected_species
             )
-            observeEvent(input[[checkboxes_id_pure]], {
-              safevv=isolate(input[[checkboxes_id_pure]])
-              safev=if(is.null(safevv)) "NULL" else safevv
-              if(VERBOSE) print(glue("internal checkbox observe called: {checkboxes_id_pure}={safev}"))
-              if(initState()){
-                # we are in init state, which means the user has just changed the view
-                # we must return without doing anything and adding the current state to the init state
-                if(checkboxes_id_pure %in% observersAlreadyCalled()) {initState(F); observersAlreadyCalled(NULL); if(VERBOSE) print("init state expired")}
-                else {
-                  observersAlreadyCalled(c(observersAlreadyCalled(), checkboxes_id_pure))
-                  if(VERBOSE) print("init state, returning")
-                  return()
+            # check if an observer for this checkbox has already been created
+            if(!(checkboxes_id_pure %in% names(checkboxes_and_observers))){
+              if(VERBOSE) print(glue("creating observer for {checkboxes_id_pure}"))
+              checkboxes_and_observers[[checkboxes_id_pure]] = observeEvent(input[[checkboxes_id_pure]], {
+                safevv=isolate(input[[checkboxes_id_pure]])
+                safev=if(is.null(safevv)) "NULL" else safevv
+                if(VERBOSE) print(glue("internal checkbox observe called: {checkboxes_id_pure}={safev}"))
+                if(initState()){
+                  # we are in init state, which means the user has just changed the view
+                  # we must return without doing anything and adding the current state to the init state
+                  if(checkboxes_id_pure %in% observersAlreadyCalled()) {initState(F); observersAlreadyCalled(NULL); if(VERBOSE) print("init state expired")}
+                  else {
+                    observersAlreadyCalled(c(observersAlreadyCalled(), checkboxes_id_pure))
+                    if(VERBOSE) print("init state, returning")
+                    return()
+                  }
                 }
-              }
-              # Find or create entries for the current file
-              current_selection = isolate(userSelections())
-              current_status=isolate(eventsStatus())
-              selected_ctid = isolate(input$ctid_select)
-              selected_interval = as.integer(isolate(input$interval_select))
-              current_data_to_display=isolate(dataToDisplay())
-              eventIsMarkedForAttention=current_status[ctid == selected_ctid & interval == selected_interval]$status=="attention"
-              # Filter out existing entries for this file
-              current_selection <- current_selection[current_selection$fn != filename, ]
-              # if there are existing entries, and the checkboxes are NULL, it means we have just loaded the app and there are preexisting selections
-              # we need to update the controls to reflect the preexisting selections
+                # Find or create entries for the current file
+                current_selection = isolate(userSelections())
+                current_status=isolate(eventsStatus())
+                selected_ctid = isolate(input$ctid_select)
+                selected_interval = as.integer(isolate(input$interval_select))
+                current_data_to_display=isolate(dataToDisplay())
+                eventIsMarkedForAttention=current_status[ctid == selected_ctid & interval == selected_interval]$status=="attention"
+                # Filter out existing entries for this file
+                current_selection <- current_selection[current_selection$fn != filename, ]
+                # if there are existing entries, and the checkboxes are NULL, it means we have just loaded the app and there are preexisting selections
+                # we need to update the controls to reflect the preexisting selections
 
-              # Add new entries based on current selections
-              if (!is.null(safevv)) {
-                  new_entries <- data.table(fn = rep(filename, length(safevv)), 
-                                          species = safevv, stringsAsFactors = FALSE)
-                  current_selection <- rbind(current_selection, new_entries)
-              }
+                # Add new entries based on current selections
+                if (!is.null(safevv)) {
+                    new_entries <- data.table(fn = rep(filename, length(safevv)), 
+                                            species = safevv, stringsAsFactors = FALSE)
+                    current_selection <- rbind(current_selection, new_entries)
+                }
 
-              # if all of the images have been tagged, we need to update the status of the event to complete
-              if(VERBOSE) print("CHECKING IF ALL TAGGED")
-              if(VERBOSE) print(current_data_to_display[ctidint == paste(selected_ctid, selected_interval)]$fn)
-              if(VERBOSE) print("CURRENT SELECTION")
-              if(VERBOSE) print(current_selection$fn)
-              if(all(current_data_to_display[ctidint == paste(selected_ctid, selected_interval)]$fn %in% current_selection$fn) && !eventIsMarkedForAttention){
-                changeEventStatus(selected_ctid, selected_interval, "complete")
-                refreshBtnColors()
-                triggerRedraw()
-              }else{
-                statusToChangeTo=ifelse(eventIsMarkedForAttention, "attention", "wip")
-                # if the event is different from the current status, we need to update the status
-                if(current_status[ctid == selected_ctid & interval == selected_interval]$status != statusToChangeTo){
-                  if(VERBOSE) print("CHANGING STATUS from {current_status[ctid == selected_ctid & interval == selected_interval]$status} to {statusToChangeTo}")
-                  changeEventStatus(selected_ctid, selected_interval, statusToChangeTo)
+                # if all of the images have been tagged, we need to update the status of the event to complete
+                if(VERBOSE) print("CHECKING IF ALL TAGGED")
+                if(VERBOSE) print(current_data_to_display[ctidint == paste(selected_ctid, selected_interval)]$fn)
+                if(VERBOSE) print("CURRENT SELECTION")
+                if(VERBOSE) print(current_selection$fn)
+                if(all(current_data_to_display[ctidint == paste(selected_ctid, selected_interval)]$fn %in% current_selection$fn) && !eventIsMarkedForAttention){
+                  changeEventStatus(selected_ctid, selected_interval, "complete")
+                  refreshBtnColors()
+                  triggerRedraw()
+                }else{
+                  statusToChangeTo=ifelse(eventIsMarkedForAttention, "attention", "wip")
+                  # if the event is different from the current status, we need to update the status
+                  if(current_status[ctid == selected_ctid & interval == selected_interval]$status != statusToChangeTo){
+                    if(VERBOSE) print("CHANGING STATUS from {current_status[ctid == selected_ctid & interval == selected_interval]$status} to {statusToChangeTo}")
+                    changeEventStatus(selected_ctid, selected_interval, statusToChangeTo)
+                    refreshBtnColors()
+                  }
+                    
+                  
                 }
                   
-                refreshBtnColors()
-              }
-                
 
-              # Update the reactive value with the new selection
-              userSelections(current_selection) 
-              }, ignoreInit = T, ignoreNULL = FALSE)
+                # Update the reactive value with the new selection
+                userSelections(current_selection) 
+                }, ignoreInit = T, ignoreNULL = FALSE)
+            }
+            
             # Combine checkboxes and image for each photo
             tagList(
               checkboxes # Dynamically generated checkboxes
