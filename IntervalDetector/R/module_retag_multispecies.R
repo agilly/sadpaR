@@ -390,32 +390,43 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
     # actually render the images
     observe({
       req(dataToDisplay())
+      # for some CTs, this does not trigger. We will req the CT select input to force it to trigger
+      req(input$ctid_select)
+      if(VERBOSE) print(glue("RENDER OBSERVE CALLED with {input$ctid_select} and {input$interval_select}"))
       selected_rows = dataToDisplay()[ctidint == paste(input$ctid_select, input$interval_select)]
       if (nrow(selected_rows) > 0) {
-        selected_rows=selected_rows
+        if(VERBOSE) print("RENDERING IMAGES")
         # if there are more than 10 rows and the thumbnails exist and the requested size is <1000, use the thumbnails
         if(nrow(selected_rows) > 10 && input$imgSize < 1000){
           thumbdir=file.path(dataDir(), "thumbnails")
           selected_rows[,thumbnail_path:=file.path(thumbdir, fn)]
           selected_rows[,thumbnail_exists:=file.exists(thumbnail_path)]
           if(all(selected_rows$thumbnail_exists)){
+            if(VERBOSE) print("ALL THUMBNAILS EXIST")
             lapply(selected_rows$thumbnail_path, function(filename) {
               image_id = paste0((basename(filename)), "_image")
+              if(VERBOSE) print(glue("rendering {image_id} with path {normalizePath(filename)} and height {input$imgSize}"))
               output[[image_id]] = renderImage({
                 list(src = normalizePath(filename), height = input$imgSize)
               }, deleteFile = FALSE)
             })
             return()
+          } else {
+            if(VERBOSE) print("NOT ALL THUMBNAILS EXIST")
           }
+        }
           # the return above will prevent the code below from running if all thumbnails exist
+          if(VERBOSE) print("RENDERING THUMBNAILS for {input$ctid_select} and {input$interval_select}:")
+          if(VERBOSE) print(selected_rows$fn)
           lapply(selected_rows$fn, function(filename) {
             image_id = paste0((basename(filename)), "_image")
             output[[image_id]] = renderImage({
               list(src = normalizePath(glue("{rootPath()}/{filename}")), height = input$imgSize)
             }, deleteFile = FALSE)
           })
-          
-        }
+
+      }else{
+        if(VERBOSE) print("NO IMAGES TO RENDER for {input$ctid_select} and {input$interval_select}")
       }
     })
 
