@@ -164,7 +164,7 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
         #withProgress(message = 'Generating new sequence and reloading dataset...', value = 0, {
         progressSweetAlert(session = session, id="loadDatasetPBar", value=0, display_pct=T, title="Generating new sequences and reloading dataset...", status="warning", striped=T, size="l")
 
-        saveBackup(session, input, output, rootDir, loadedDataset, currentTagging, dur, sub(" ", ".", chosenCT), input$ChooseEdit)
+        saveBackup(session, input, output, rootDir, loadedDataset, currentTagging, sub(" ", ".", chosenCT), input$ChooseEdit)
         mergeGIFs(rootDir, sub(" ", ".", chosenCT), input$ChooseEdit, newSequenceId)
         ## replace all rows in the interval table with the new ID
         loadedDataset$interval_data[location==selectedLoc & ct==selectedCT & interval %in% as.integer(input$ChooseEdit), interval:=newSequenceId]
@@ -197,7 +197,7 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
       #withProgress(message = 'Generating new sequence and reloading dataset...', value = 0, {
       progressSweetAlert(session = session, id="loadDatasetPBar", value=0, display_pct=T, title="Generating new sequence and reloading dataset...", status="warning", striped=T, size="l")
 
-        saveBackup(session, input, output, rootDir, loadedDataset, currentTagging, dur, sub(" ", ".", chosenCT), input$ChooseEdit)
+        saveBackup(session, input, output, rootDir, loadedDataset, currentTagging, sub(" ", ".", chosenCT), input$ChooseEdit)
         loadedDataset$interval_data[location==selectedLoc & ct==selectedCT & interval==input$ChooseEdit & fn %in% imagesBefore, interval:=newSequenceId]
         loadedDataset$interval_data[location==selectedLoc & ct==selectedCT & interval==input$ChooseEdit & fn %in% imagesAfter, interval:=newSequenceId+1]
         generateNewGIFs(rootDir, loadedDataset, selectedLoc, selectedCT,c(newSequenceId, newSequenceId+1))

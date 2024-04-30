@@ -196,7 +196,37 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   updateProgressBar(session = session, id="loadDatasetPBar", value=100, title="Dataset finished loading")
 }
 
-saveBackup=function(session, input, output, rootDir, loadedDataset, currentTagging, dur, ctid, seq){
+saveCopyOfDataFiles=function(rootDir){
+  print(glue("rootDir={rootDir()}"))
+  if(!file.exists(paste(rootDir(), "backup", sep="/"))){
+    showNotification("Backup folder does not exist, creating.", type="message")
+    dir.create(paste(rootDir(), "backup", sep="/"))
+  }
+  if(!file.exists(paste(rootDir(), "backup", sep="/"))){
+    showNotification("Impossible to create a backup directory. Aborting.", type="error")
+    return(-1)
+  }
+  bkdirname=paste0("backup/", format(Sys.time(), "%d.%m.%Y-%H.%M"))
+  dir.create(paste(rootDir(), bkdirname, sep="/"))
+  for (extension in c("metadata", "sequences", "tagging")){
+    dir.create(paste(rootDir(), bkdirname, extension, sep="/"))
+  }
+  file.copy(paste(rootDir(), "metadata", "intervals.csv" ,sep="/"), paste(rootDir(), bkdirname, "metadata/intervals.csv" ,sep="/"))
+  file.copy(paste(rootDir(), "metadata", "ct.csv" ,sep="/"), paste(rootDir(), bkdirname, "metadata/ct.csv" ,sep="/"))
+  file.copy(paste(rootDir(), "metadata", "species.csv" ,sep="/"), paste(rootDir(), bkdirname, "metadata/species.csv" ,sep="/"))
+  file.copy(paste(rootDir(), "metadata", "stations.csv" ,sep="/"), paste(rootDir(), bkdirname, "metadata/stations.csv" ,sep="/"))
+  file.copy(paste(rootDir(), "metadata", "metadata.csv" ,sep="/"), paste(rootDir(), bkdirname, "metadata/metadata.csv" ,sep="/"))
+  file.copy(paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/"), paste(rootDir(), bkdirname, "tagging/eventTagging.csv" ,sep="/"))
+  # also copy multipleEventStatus.csv and multipleEventTags.csv
+  if(file.exists(paste(rootDir(), "tagging", "multipleEventTags.csv" ,sep="/"))){
+    file.copy(paste(rootDir(), "tagging", "multipleEventTags.csv" ,sep="/"), paste(rootDir(), bkdirname, "tagging/multipleEventTags.csv" ,sep="/"))
+  }
+  if(file.exists(paste(rootDir(), "tagging", "multipleEventStatus.csv" ,sep="/"))){
+    file.copy(paste(rootDir(), "tagging", "multipleEventStatus.csv" ,sep="/"), paste(rootDir(), bkdirname, "tagging/multipleEventStatus.csv" ,sep="/"))
+  }
+}
+
+saveBackup=function(session, input, output, rootDir, loadedDataset, currentTagging, ctid=NULL, seq=NULL){
   if(!file.exists(paste(rootDir(), "backup", sep="/"))){
     showNotification("Backup folder does not exist, creating.", type="message")
     dir.create(paste(rootDir(), "backup", sep="/"))
@@ -215,7 +245,8 @@ saveBackup=function(session, input, output, rootDir, loadedDataset, currentTaggi
   fwrite(loadedDataset$species_data, paste(rootDir(), bkdirname, "metadata/species.csv" ,sep="/"))
   fwrite(loadedDataset$stations, paste(rootDir(), bkdirname, "metadata/stations.csv" ,sep="/"))
   fwrite(loadedDataset$metadata, paste(rootDir(), bkdirname, "metadata/metadata.csv" ,sep="/"))
-  file.copy(paste(rootDir(), "sequences", ctid, paste("sequence", seq, "gif", sep="."), sep="/"), paste(rootDir(), bkdirname, "sequences", sep="/"))
+  if(!is.null(ctid) && !is.null(seq))
+    file.copy(paste(rootDir(), "sequences", ctid, paste("sequence", seq, "gif", sep="."), sep="/"), paste(rootDir(), bkdirname, "sequences", sep="/"))
   fwrite(currentTagging$internalTable, paste(rootDir(), bkdirname, "tagging/eventTagging.csv" ,sep="/"))
 }
 
