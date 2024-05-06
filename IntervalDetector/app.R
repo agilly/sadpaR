@@ -758,6 +758,7 @@ output$CTInEditFrame=renderText({
   hideTab(inputId="tabs", target="Edit")
   hideTab(inputId="tabs", target="Tagging")
   hideTab(inputId="tabs", target="Retagging")
+  hideTab(inputId="tabs", target="RecordTable")
   
   shinyjs::hide("saveButton")
 
@@ -919,6 +920,27 @@ output$CTInEditFrame=renderText({
   savedRetag=reactiveValues(tags=NULL, status=NULL)
   retag=retagMultiServer("photoModule", mergedDtForRetag, speciesForRetag, appLang, savedRetag, userSuppliedRootDir, rootDir)
 
+  ############################# MAKE RECORD TABLE SECTION #############################
+
+  # have an observer that enables the tab only if the tagging table is not empty, retag$tags and all the retag$status are complete
+  observe({
+    if(!is.null(currentTagging$internalTable)
+    && nrow(currentTagging$internalTable) 
+    && !is.null(retag()$tags) 
+    && !is.null(retag()$status)
+    && all(retag()$status$status=="complete")
+    ){
+      print("SHOWING TAB")
+      showTab(inputId="tabs", target="RecordTable")
+    }
+    else{
+      print("HIDING TAB")
+      hideTab(inputId="tabs", target="RecordTable")
+    }
+  })
+
+
+  makeRecordTableServer("recordTableModule", intervals = loadedDataset$interval_data, tags=currentTagging$internalTable, species = loadedDataset$species_data, multispecies_tagging = retag()$tags, imageRootOriginal = loadedDataset$imagePath)
 
   ############################# SETTINGS SECTION #############################
   observeEvent(input$languageSelection, {
@@ -1134,8 +1156,11 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
       tableOutput("tags"),
       tableOutput("status")
     ),
+    tabPanel(title=appLang$recordTabLabel, value="RecordTable",
+      makeRecordTableUI("recordTableModule", appLang)
+    ),
     tabPanel(title="", value="Settings",
-    tags$code("Version 0.8"),
+    tags$code("Version 0.9"),
     h4("Application settings"),
     #fluidRow(
       #column(4,
