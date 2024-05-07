@@ -745,11 +745,12 @@ output$CTInEditFrame=renderText({
     selectedRootDir=rootDir()
     if(length(selectedRootDir)){
       #withProgress(message = appLang$loadingDatasetModal, value = 0, {
+        ret=FALSE
      progressSweetAlert(session = session, id="loadDatasetPBar", value=0, display_pct=T, title="Loading dataset", status="warning", striped=T, size="l")
         if(checkSelectedFolder(session, input, output, rootDir, loadedDataset, currentTagging, dur, appPaths, appLang = appLang)){
-          loadDataset(session, input, output, rootDir, loadedDataset, currentTagging, dur, savedRetag)
+          ret=loadDataset(session, input, output, rootDir, loadedDataset, currentTagging, dur, savedRetag)
         }
-        closeSweetAlert(session = session)
+        if(ret) closeSweetAlert(session = session)
       #})
     }
   })
@@ -903,10 +904,11 @@ output$CTInEditFrame=renderText({
         # Merge the data.tables with adjusted image paths
         setnames(taggedEvents_dt, c("V2"), c("species"))
         #print(str(intervals_dt))
-        intervals_dt[, fn := sub(old_root_dir, "", fn, fixed = TRUE)]
-        intervals_dt[,ctidint:=paste(ctid, interval)]
+        intervals_dt.copy=copy(intervals_dt)
+        intervals_dt.copy[, fn := sub(old_root_dir, "", fn, fixed = TRUE)]
+        intervals_dt.copy[,ctidint:=paste(ctid, interval)]
         #intervals_dt[,c("ctid", "interval"):=NULL]
-        merged_dt = merge(taggedEvents_dt, intervals_dt, by = 'ctidint')
+        merged_dt = merge(taggedEvents_dt, intervals_dt.copy, by = 'ctidint')
         mergedDtForRetag(merged_dt)
       }
     }
