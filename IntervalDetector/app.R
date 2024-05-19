@@ -335,7 +335,7 @@ server <- function(input, output, session) {
     # print(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)
     # print(numTags==1)
     # print(unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0)
-    if(numTags==1 & unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0){
+    if(numTags==1 && unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0){
       # there is only one row and numInd is 0
       # print("heyy")
       return(appLang$tooltipTagEmpty)
@@ -439,7 +439,7 @@ output$CTInEditFrame=renderText({
 
     if(!is.null(currentTagging$internalTable) & nrow(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence])){
       if(nrow(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence])==1 
-        & unique(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence]$numInd)==0) ret=emptyTaggingTable else ret=df
+        && unique(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence]$numInd)==0) ret=emptyTaggingTable else ret=df
     }
     ret
   })
@@ -871,6 +871,9 @@ output$CTInEditFrame=renderText({
     }
   })
 
+  favouriteSpecies=reactiveVal(1:10)
+
+  favouriteSpeciesServer("favouriteSpeciesModule", input, output, session, loadedDataset$species_data, favouriteSpecies, currentTagging, reactiveVal(input$whichCT), reactiveVal(input$sequence))
 
   ############################# MULTISPECIES TAGGING SECTION #############################
   observe({
@@ -970,6 +973,20 @@ output$CTInEditFrame=renderText({
       )
     }
 
+  })
+
+  output$selectFavouriteSpeciesUI=renderUI({
+    # only render this section is a dataset is loaded
+    if(!is.null(loadedDataset$metadata)){
+      tagList(
+        strong(appLang$favouriteSpeciesTooltip),
+        selectizeInput("favouriteSpecies", "", choices=setNames(loadedDataset$species_data$id, paste(loadedDataset$species_data$`Common Name`, loadedDataset$species_data$`Lao Name`, loadedDataset$species_data$`Species Name`, sep=" - ")), multiple=T)
+      )
+    }
+  })
+
+  observeEvent(input$favouriteSpecies, {
+    favouriteSpecies(as.integer(input$favouriteSpecies))
   })
 
   observeEvent(input$generateThumbnailsButton, {
@@ -1090,7 +1107,8 @@ sidebarLayout(
       actionButton("editSequenceButton", appLang$editSequenceButtonLabel, icon=icon("pen-to-square", lib="font-awesome")),
       actionButton("tagSequenceButton", appLang$tagSequenceButtonLabel, icon=icon("crow", lib="font-awesome")),br(),
       tagAppendAttributes(textOutput("tagInfo"), class="h4"),
-      DTOutput("existingTags")
+      #DTOutput("existingTags")
+      favouriteSpeciesUI("favouriteSpeciesModule")
     )
   )
 
@@ -1162,7 +1180,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
       makeRecordTableUI("recordTableModule", appLang)
     ),
     tabPanel(title="", value="Settings",
-    tags$code("Version 0.9"),
+    tags$code("Version 0.91"),
     h4("Application settings"),
     #fluidRow(
       #column(4,
@@ -1176,7 +1194,8 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
     ,hr()
     ,
     h4("Dataset settings"),
-    uiOutput("changeRootDirSettingsSectionUI")
+    uiOutput("changeRootDirSettingsSectionUI"),
+    uiOutput("selectFavouriteSpeciesUI")
     ,icon=icon("gear"),
     hr(),
     h4("Generate thumbnails"),
