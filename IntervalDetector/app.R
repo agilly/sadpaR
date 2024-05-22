@@ -450,19 +450,21 @@ output$CTInEditFrame=renderText({
     datatable(
       {
       df=taggingData()
-      setorder(df, id)
+      if(nrow(df)) setorder(df, id)
+      df
       }
       , rownames=F, selection = "single"
     )
     , options = list(autoWidth = TRUE, dom='t', paging = FALSE, ordering = FALSE), 
     escape = FALSE, server = FALSE,
-  editable=list(target="column", disable=list(columns=c(0,2:10))), rownames=F,callback = JS("table.rows().every(function(i, tab, row) {
-        var $this = $(this.node());
-        $this.attr('id', this.data()[0]);
-        $this.addClass('shiny-input-container');
-      });
-      Shiny.unbindAll(table.table().node());
-      Shiny.bindAll(table.table().node());"))
+  editable=list(target="column", disable=list(columns=c(0,2:10))), rownames=F#,callback = JS("table.rows().every(function(i, tab, row) {
+      #   var $this = $(this.node());
+      #   $this.attr('id', this.data()[0]);
+      #   $this.addClass('shiny-input-container');
+      # });
+      # Shiny.unbindAll(table.table().node());
+      # Shiny.bindAll(table.table().node());")
+      )
 
   sortedSpeciesTable=reactive({
     speciesOrder=currentTagging$internalTable[,.N, by=speciesID]
@@ -629,8 +631,11 @@ output$CTInEditFrame=renderText({
       currentTagging$displayTable=currentTagging$displayTable[-iselected]
     }
     # reset numbering in table
-    currentTagging$displayTable[,id:=seq(0, nrow(currentTagging$displayTable)-1)]
-    currentTagging$internalTable[ctid==selected_ctid & event==selected_event,indID:=seq(0, nrow(currentTagging$displayTable)-1)]
+    if(nrow(currentTagging$displayTable)) 
+    {
+      currentTagging$displayTable[,id:=seq(0, nrow(currentTagging$displayTable)-1)]
+      currentTagging$internalTable[ctid==selected_ctid & event==selected_event,indID:=seq(0, nrow(currentTagging$displayTable)-1)]
+    }
   })
 
   output$durationSliderUI=renderUI({
@@ -871,7 +876,7 @@ output$CTInEditFrame=renderText({
     }
   })
 
-  favouriteSpecies=reactiveVal(1:10)
+  favouriteSpecies=reactiveVal()
 
   favouriteSpeciesServer("favouriteSpeciesModule", input, output, session, loadedDataset$species_data, favouriteSpecies, currentTagging, reactiveVal(input$whichCT), reactiveVal(input$sequence))
 

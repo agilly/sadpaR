@@ -90,13 +90,14 @@ addSpeciesById=function(currentTagging, speciesData, speciesId, ctidSelected, ev
     newInternalRow=data.table(
         ctid=ctidSelected,
         event=eventSelected,
-        numInd=nrow(selectedInternalTable),
+        numInd=nrow(selectedInternalTable)+1,
         indID=nextIndId,
         speciesID=speciesId,
         indName="",
         Sex="unknown",
         Age="unknown")
     currentTagging$internalTable=rbind(currentTagging$internalTable, newInternalRow)
+    currentTagging$internalTable[ctid==ctidSelected & event==eventSelected, numInd:=nrow(selectedInternalTable)+1]
 }
 
 # Demo function running the module as a standalone app
