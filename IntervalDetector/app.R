@@ -335,7 +335,7 @@ server <- function(input, output, session) {
     # print(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)
     # print(numTags==1)
     # print(unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0)
-    if(numTags==1 && unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0){
+    if(numTags==1 & unique(currentTagging$internalTable[ctid==ctidSel & event==interval]$numInd)==0){
       # there is only one row and numInd is 0
       # print("heyy")
       return(appLang$tooltipTagEmpty)
@@ -439,7 +439,7 @@ output$CTInEditFrame=renderText({
 
     if(!is.null(currentTagging$internalTable) & nrow(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence])){
       if(nrow(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence])==1 
-        && unique(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence]$numInd)==0) ret=emptyTaggingTable else ret=df
+        & unique(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence]$numInd)==0) ret=emptyTaggingTable else ret=df
     }
     ret
   })
@@ -450,21 +450,19 @@ output$CTInEditFrame=renderText({
     datatable(
       {
       df=taggingData()
-      if(nrow(df)) setorder(df, id)
-      df
+      setorder(df, id)
       }
       , rownames=F, selection = "single"
     )
     , options = list(autoWidth = TRUE, dom='t', paging = FALSE, ordering = FALSE), 
     escape = FALSE, server = FALSE,
-  editable=list(target="column", disable=list(columns=c(0,2:10))), rownames=F#,callback = JS("table.rows().every(function(i, tab, row) {
-      #   var $this = $(this.node());
-      #   $this.attr('id', this.data()[0]);
-      #   $this.addClass('shiny-input-container');
-      # });
-      # Shiny.unbindAll(table.table().node());
-      # Shiny.bindAll(table.table().node());")
-      )
+  editable=list(target="column", disable=list(columns=c(0,2:10))), rownames=F,callback = JS("table.rows().every(function(i, tab, row) {
+        var $this = $(this.node());
+        $this.attr('id', this.data()[0]);
+        $this.addClass('shiny-input-container');
+      });
+      Shiny.unbindAll(table.table().node());
+      Shiny.bindAll(table.table().node());"))
 
   sortedSpeciesTable=reactive({
     speciesOrder=currentTagging$internalTable[,.N, by=speciesID]
@@ -631,11 +629,8 @@ output$CTInEditFrame=renderText({
       currentTagging$displayTable=currentTagging$displayTable[-iselected]
     }
     # reset numbering in table
-    if(nrow(currentTagging$displayTable)) 
-    {
-      currentTagging$displayTable[,id:=seq(0, nrow(currentTagging$displayTable)-1)]
-      currentTagging$internalTable[ctid==selected_ctid & event==selected_event,indID:=seq(0, nrow(currentTagging$displayTable)-1)]
-    }
+    currentTagging$displayTable[,id:=seq(0, nrow(currentTagging$displayTable)-1)]
+    currentTagging$internalTable[ctid==selected_ctid & event==selected_event,indID:=seq(0, nrow(currentTagging$displayTable)-1)]
   })
 
   output$durationSliderUI=renderUI({
@@ -750,11 +745,12 @@ output$CTInEditFrame=renderText({
     selectedRootDir=rootDir()
     if(length(selectedRootDir)){
       #withProgress(message = appLang$loadingDatasetModal, value = 0, {
+        ret=FALSE
      progressSweetAlert(session = session, id="loadDatasetPBar", value=0, display_pct=T, title="Loading dataset", status="warning", striped=T, size="l")
         if(checkSelectedFolder(session, input, output, rootDir, loadedDataset, currentTagging, dur, appPaths, appLang = appLang)){
-          loadDataset(session, input, output, rootDir, loadedDataset, currentTagging, dur, savedRetag)
+          ret=loadDataset(session, input, output, rootDir, loadedDataset, currentTagging, dur, savedRetag)
         }
-        closeSweetAlert(session = session)
+        if(ret) closeSweetAlert(session = session)
       #})
     }
   })
@@ -875,9 +871,6 @@ output$CTInEditFrame=renderText({
     }
   })
 
-  favouriteSpecies=reactiveVal()
-
-  favouriteSpeciesServer("favouriteSpeciesModule", input, output, session, loadedDataset$species_data, favouriteSpecies, currentTagging, reactiveVal(input$whichCT), reactiveVal(input$sequence))
 
   ############################# MULTISPECIES TAGGING SECTION #############################
   observe({
@@ -911,10 +904,11 @@ output$CTInEditFrame=renderText({
         # Merge the data.tables with adjusted image paths
         setnames(taggedEvents_dt, c("V2"), c("species"))
         #print(str(intervals_dt))
-        intervals_dt[, fn := sub(old_root_dir, "", fn, fixed = TRUE)]
-        intervals_dt[,ctidint:=paste(ctid, interval)]
+        intervals_dt.copy=copy(intervals_dt)
+        intervals_dt.copy[, fn := sub(old_root_dir, "", fn, fixed = TRUE)]
+        intervals_dt.copy[,ctidint:=paste(ctid, interval)]
         #intervals_dt[,c("ctid", "interval"):=NULL]
-        merged_dt = merge(taggedEvents_dt, intervals_dt, by = 'ctidint')
+        merged_dt = merge(taggedEvents_dt, intervals_dt.copy, by = 'ctidint')
         mergedDtForRetag(merged_dt)
       }
     }
@@ -976,20 +970,6 @@ output$CTInEditFrame=renderText({
       )
     }
 
-  })
-
-  output$selectFavouriteSpeciesUI=renderUI({
-    # only render this section is a dataset is loaded
-    if(!is.null(loadedDataset$metadata)){
-      tagList(
-        strong(appLang$favouriteSpeciesTooltip),
-        selectizeInput("favouriteSpecies", "", choices=setNames(loadedDataset$species_data$id, paste(loadedDataset$species_data$`Common Name`, loadedDataset$species_data$`Lao Name`, loadedDataset$species_data$`Species Name`, sep=" - ")), multiple=T)
-      )
-    }
-  })
-
-  observeEvent(input$favouriteSpecies, {
-    favouriteSpecies(as.integer(input$favouriteSpecies))
   })
 
   observeEvent(input$generateThumbnailsButton, {
@@ -1110,8 +1090,7 @@ sidebarLayout(
       actionButton("editSequenceButton", appLang$editSequenceButtonLabel, icon=icon("pen-to-square", lib="font-awesome")),
       actionButton("tagSequenceButton", appLang$tagSequenceButtonLabel, icon=icon("crow", lib="font-awesome")),br(),
       tagAppendAttributes(textOutput("tagInfo"), class="h4"),
-      #DTOutput("existingTags")
-      favouriteSpeciesUI("favouriteSpeciesModule")
+      DTOutput("existingTags")
     )
   )
 
@@ -1183,7 +1162,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
       makeRecordTableUI("recordTableModule", appLang)
     ),
     tabPanel(title="", value="Settings",
-    tags$code("Version 0.91"),
+    tags$code("Version 0.9"),
     h4("Application settings"),
     #fluidRow(
       #column(4,
@@ -1197,8 +1176,7 @@ tabPanel(title=appLang$editButtonLabel, value="Edit", sidebarLayout(
     ,hr()
     ,
     h4("Dataset settings"),
-    uiOutput("changeRootDirSettingsSectionUI"),
-    uiOutput("selectFavouriteSpeciesUI")
+    uiOutput("changeRootDirSettingsSectionUI")
     ,icon=icon("gear"),
     hr(),
     h4("Generate thumbnails"),
