@@ -103,7 +103,7 @@ fixCorruptTagging=function(filename){
 
     # check that for the remaining events, indID starts at 0 and is sequential
     data.table::setorder(drest, ctid, event, indID)
-    eventsViolateOrder=drest[,setequal(indID,seq(0,(.GRP-1))),by=.(ctid,event)]
+    eventsViolateOrder=drest[,setequal(indID,seq(0,(.N-1))),by=.(ctid,event)]
     if(nrow(eventsViolateOrder[V1==F])){
         warn("There are {nrow(eventsViolateOrder[V1==F])} events where indID does not start at 0 or is not sequential")
         warn("Backing up rows to {base}.indIDNotSequential.csv")

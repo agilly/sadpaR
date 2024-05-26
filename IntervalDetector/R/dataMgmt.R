@@ -122,7 +122,7 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   interval_data[,ctid:=paste(location, ct)]
   choices=unique(interval_data$ctid)
   #print(head(choices))
-  print("loadDataset called")
+  print("general observe called")
   updateSelectInput(session, inputId = "whichCT", choices=choices, selected=choices[1])
   updateSelectInput(session, inputId = "whichCTSeq", choices=choices, selected=choices[1])
   updateSelectInput(session, inputId = "tagCT", choices=choices, selected=choices[1])
@@ -140,14 +140,7 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   loadedDataset$metadata=fread(paste(rootDir(), "metadata", "metadata.csv" ,sep="/"))
   #setProgress(0.8, detail = paste("Understanding directory structure"))
   updateProgressBar(session = session, id="loadDatasetPBar", value=80, title="Understanding directory structure")
-  ermsg=""
-  loadedDataset$imagePath=tryCatch(
-    largestCommonPath(interval_data$fn), 
-    error=function(e){ermsg<<-e$message;return("")})
-  if(loadedDataset$imagePath==""){
-    sendSweetAlert(session, "Error: Could not determine common path. Please check the dataset.", ermsg)
-    return(F)
-  }
+  loadedDataset$imagePath=largestCommonPath(interval_data$fn)
   print(paste("imagepath= ", loadedDataset$imagePath))
   #print(loadedDataset$imagePath)
   #print(strsplit(choices[1], " "))
@@ -201,7 +194,6 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
     retag$status=fread(paste(rootDir(), "tagging", "multipleEventStatus.csv" ,sep="/"))
   }
   updateProgressBar(session = session, id="loadDatasetPBar", value=100, title="Dataset finished loading")
-  return(T)
 }
 
 saveCopyOfDataFiles=function(rootDir){
