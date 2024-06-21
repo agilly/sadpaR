@@ -62,7 +62,13 @@ if(file.exists(ofn)){
   fl=list.files(args$inputdir, pattern=".*\\.(jpg|jpeg)$", recursive=T, full.names=T, ignore.case=T)
   inform(length(fl), "images detected.")
   inform("Extracting timestamps, please wait...")
-  datetime=rbindlist(lapply(fl, function(fn){date=NA;try({date=read_exif_tags(fn)[["DateTime"]]});return(data.table(fn=fn,date=date))}))
+  datetime=rbindlist(lapply(fl, 
+    function(fn){
+      this_date=tryCatch({
+        date=read_exif_tags(fn)
+        d[['DateTime']]
+      }, error=function(e) return(NA))
+  return(data.table(fn=fn,date=date))}))
   inform(nrow(datetime), "timestamps extracted. Writing to file.")
   fwrite(datetime, ofn)
 }
