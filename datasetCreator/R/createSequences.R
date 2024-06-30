@@ -1,4 +1,5 @@
 guessFsep=function(){
+    return("/")
     if(.Platform$OS.type=="windows")
         return("\\")
     else
@@ -6,28 +7,39 @@ guessFsep=function(){
 }
 
 checkIfSomeSequencesExist=function(intervalFile, outputDir){
-    if(!file.exists(intervalFile))
+    cli::cli_inform("checkIfSomeSequencesExist called with intervalFile: {intervalFile}, outputDir: {outputDir}")
+    if(!file.exists(intervalFile)){
+        cli::cli_inform("Interval file does not exist")
         return(FALSE)
+    }
     intervals=data.table::fread(intervalFile)
-    if(!all(c("location", "ct", "fn", "interval") %in% names(intervals)))
+    if(!all(c("location", "ct", "fn", "interval") %in% names(intervals))){
+        cli::cli_inform("The interval file must contain columns 'location', 'ct', 'fn', 'interval'")
         return(FALSE)
+    }
     intervals[,location_ct:=paste(location, ct, sep=".")]
     locations_cts=unique(intervals$location_ct)
     for(loc_ct in locations_cts){
-        loc_ct_dir=file.path(outputDir, loc_ct, fsep = guessFsep())
-        if(!dir.exists(loc_ct_dir))
+        loc_ct_dir=file.path(outputDir,"sequences", loc_ct)#, fsep = "/")
+        if(!dir.exists(loc_ct_dir)){
+            cli::cli_inform("Location, ct directory {loc_ct_dir} does not exist")
             return(FALSE)
+        }
         intervalsInLocCt=unique(intervals[location_ct==loc_ct]$interval)
         for(interval in intervalsInLocCt){
-            if(any(file.exists(file.path(loc_ct_dir, paste0("sequence.", interval, ".gif"), fsep = guessFsep()))))
+            #if(any(file.exists(file.path(loc_ct_dir, paste0("sequence.", interval, ".gif"), fsep = guessFsep()))))
+            cli::cli_inform("found: {file.path(loc_ct_dir, paste0('sequence.', interval, '.gif'))}")
+            if(any(file.exists(file.path(loc_ct_dir, paste0("sequence.", interval, ".gif"))))) #, fsep = "/"))))
                 return(TRUE)
         }
     }
+    cli::cli_inform("No sequences found")
     return(FALSE)
 }
 
 createSingleSequence = function(interval, intervals_loc_ct, tempDir, loc_ct_dir, maxImagesBeforeDownsampling, verbose, session) {
     fsep=guessFsep()
+    fsep="/"
     # if the tempdir has files, remove them
     if(verbose) cli::cli_inform("tempDir: {tempDir}")
     if(verbose) cli::cli_inform("Number of files in temp dir: {length(list.files(tempDir))}")
@@ -76,15 +88,20 @@ createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=10
     if(!dir.exists(outputDir))
         dir.create(outputDir)
     intervals=data.table::fread(intervalFile)
+    # remove double slashes from the file paths
+    outputDir=gsub("/+", "/", outputDir)
+
+    cli::cli_inform("createSequences called with intervalFile: {intervalFile}, outputDir: {outputDir}, maxImagesBeforeDownsampling: {maxImagesBeforeDownsampling}, verbose: {verbose}, overwrite: {overwrite}")
     # make sure location,ct,fn,interval are all present
     if(!all(c("location", "ct", "fn", "interval") %in% names(intervals)))
         cli::cli_abort("The interval file must contain columns 'location', 'ct', 'fn', 'interval'")
     # create a temp dir
     # On windows, use outputDir, otherwise use tempdir()
-    tempDir=if(.Platform$OS.type=="windows") glue::glue("{outputDir}\\tmp") else tempdir()
+    tempDir=if(.Platform$OS.type=="windows") glue::glue("{outputDir}/tmp") else tempdir()
     # if windows, set fsep to \\, otherwise /
-    fsep=guessFsep()
-    tempDir=file.path(tempDir, "sadpaR_sequences", fsep=fsep)
+    #fsep=guessFsep()
+    fsep="/"
+    tempDir=file.path(tempDir, "sadpaR_sequences")#, fsep=fsep)
     if(!dir.exists(tempDir))
         dir.create(tempDir, recursive=T)
     intervals[,location_ct:=paste(location, ct, sep=".")]

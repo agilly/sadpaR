@@ -13,7 +13,9 @@ timeRangeUI = function(id){
           no = tags$i(class = "fa fa-square-o", 
             style = "color: steelblue"))
         ),
-        plotOutput(ns("timeRangePlot"))
+        shinycssloaders::withSpinner(
+          plotOutput(ns("timeRangePlot"))
+        )
     )
 }
 
