@@ -80,6 +80,7 @@ English:
   onlyShowAll: "all"
   onlyShowIncomplete: "incomplete"
   markedForAttention: "marked for attention"
+  markForAttentionButtonLabel: "Mark for attention"
   noPhotosInSelection: "No photo available for the selected criteria."
   multiSpeciesTaggingTab: "Multispecies events"
   warning: "Warning"

@@ -11,7 +11,8 @@ library(shinycssloaders)
 library(ini)
 library(yaml)
 library(imager)
-DEBUG=F
+DEBUG=T
+VERBOSE=T
 #library(shinypop)
 #options(shiny.error = rlang::entrace)
 #rlang::global_entrace()

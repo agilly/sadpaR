@@ -1,4 +1,4 @@
-VERBOSE=F
+VERBOSE=T
 IMG_PER_PAGE=10
 retagMultiUI = function(id, appLang) {
   ns = NS(id)
@@ -29,7 +29,7 @@ retagMultiUI = function(id, appLang) {
         br(),
         actionBttn(
           inputId=ns("markAttention"),
-          label=appLang$markedForAttention,
+          label=appLang$markForAttentionButtonLabel,
           style="material-flat",
           color = "danger"
           ),
@@ -89,6 +89,19 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
     eventsStatus=reactiveVal()
     observeEvent(merged_dt(), {
       if(VERBOSE) print("MERGED_DT OBSERVE CALLED")
+      # if there are some events in merged_dt that are not in savedRetag, we need to add them
+      print(merged_dt())
+      print("================================")
+      print(savedRetag$status)
+      savedCtidint=unique(savedRetag$status[,paste(ctid, interval)])
+      mergedCtidint=unique(merged_dt()$ctidint)
+      if(length(setdiff(mergedCtidint, savedCtidint))){
+        print("ADDING NEW EVENTS")
+        newEvents=unique(merged_dt()[!ctidint %in% savedCtidint][,.(ctid, interval)])
+        print(newEvents)
+        newEvents=data.table(ctid=newEvents$ctid, interval=newEvents$interval, status="wip")
+        savedRetag$status=rbind(savedRetag$status, newEvents)
+      }
       if(is.null(savedRetag$status)) eventsStatus(unique(data.table(ctid=merged_dt()$ctid, interval=merged_dt()$interval, status="wip")))
       else eventsStatus(savedRetag$status)
       if(is.null(savedRetag$tags)) {
@@ -171,12 +184,16 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
     req(eventsStatus())
     if(VERBOSE) print(glue("CHANGE EVENT ST CALLED: ctid: {this_ctid}, interval: {this_interval}, status: {new_status}"))
     stati=copy(eventsStatus())
-    stati[ctid == ctid & interval == this_interval, status:=new_status]
+    stati[ctid == this_ctid & interval == this_interval, status:=new_status]
+    if(VERBOSE) print("Setting eventsStatus to:")
+    if(VERBOSE) print(stati[ctid == this_ctid & interval == this_interval])
     eventsStatus(stati)  
   }
 
   refreshBtnColors=function(){
     if(VERBOSE) print("REFRESH COL CALLED")
+    if(VERBOSE) print("EVENTS STATUS")
+    if(VERBOSE) print(eventsStatus())
     req(eventsStatus())
     #print(1)
     stati=eventsStatus()
@@ -185,6 +202,8 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
     #print(3)
     #if(!length(this_status)) this_status="wip"  # if the event is not in the status table, it is a new event
     #print(4)
+    if(VERBOSE) print("this status")
+    if(VERBOSE) print(this_status)
     if(VERBOSE) print(glue("this status: {this_status} (ctid: {input$ctid_select}, interval: {input$interval_select})"))
     if(this_status=="wip") this_status="primary" else if (this_status=="complete") this_status="success" else this_status="danger"
     if(VERBOSE) print(glue("this status: {this_status} (ctid: {input$ctid_select}, interval: {input$interval_select})"))
@@ -207,10 +226,18 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
   }
 
   observeEvent(input$markAttention, {
+    print("MARKEDATTENTION TRIGGERED")
+    print(VERBOSE)
     if(VERBOSE) print("MARKEDATTENTION TRIGGERED")
     req(dataToDisplay())
     req(eventsStatus())
-    changeEventStatus(input$ctid_select, input$interval_select, "attention")
+    # get current status
+    stati=eventsStatus()
+    this_status=stati[ctid == input$ctid_select & interval == input$interval_select]$status
+    if(this_status=="attention") 
+      changeEventStatus(input$ctid_select, input$interval_select, "wip")
+    else
+      changeEventStatus(input$ctid_select, input$interval_select, "attention")
     refreshBtnColors()
   })
 
@@ -426,7 +453,7 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
           })
 
       }else{
-        if(VERBOSE) print("NO IMAGES TO RENDER for {input$ctid_select} and {input$interval_select}")
+        if(VERBOSE) print(glue("NO IMAGES TO RENDER for {input$ctid_select} and {input$interval_select}"))
       }
     })
 
@@ -448,6 +475,7 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
 
   output$numOfEventsText=renderUI({
     p(glue("{nrow(eventsStatus())} total events have multiple species. Completed or marked events will show below."))
+    p(glue("{nrow(eventsStatus()[status=='wip'])} events are incomplete."))
   })
   output$referenceStatusTable=renderTable({
     tbl=eventsStatus()[status!="wip"]
