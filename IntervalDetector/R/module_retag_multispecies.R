@@ -1,4 +1,4 @@
-VERBOSE=T
+VERBOSE=F
 IMG_PER_PAGE=10
 retagMultiUI = function(id, appLang) {
   ns = NS(id)
@@ -121,14 +121,16 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
 
     # previous page button observer. Decreases the page number by 1 except if it is already 1
     observeEvent(input$previousPage, {
-      if(input$pageSelect > 1){
+      if(VERBOSE) print(glue("previousPage pressed input$pageSelect: {input$pageSelect}, numberOfPages: {numberOfPages()}"))
+      if(as.integer(input$pageSelect) > 1){
         updateSelectInput(session, "pageSelect", choices=1:numberOfPages(), selected = as.integer(input$pageSelect) - 1)
       }
     })
 
     # next page button observer. Increase the page number by 1 except if it is already the last page
     observeEvent(input$nextPage, {
-      if(input$pageSelect < numberOfPages()){
+      if(VERBOSE) print(glue("nextPage pressed input$pageSelect: {input$pageSelect}, numberOfPages: {numberOfPages()}"))
+      if(as.integer(input$pageSelect) < as.integer(numberOfPages())){
         updateSelectInput(session, "pageSelect", choices=1:numberOfPages(), selected = as.integer(input$pageSelect) + 1)
       }
     })
