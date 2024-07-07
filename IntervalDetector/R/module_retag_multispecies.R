@@ -474,8 +474,10 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
 
 
   output$numOfEventsText=renderUI({
-    p(glue("{nrow(eventsStatus())} total events have multiple species. Completed or marked events will show below."))
-    p(glue("{nrow(eventsStatus()[status=='wip'])} events are incomplete."))
+    tagList(
+      p(glue("{nrow(eventsStatus())} total events have multiple species. Completed or marked events will show below.")),
+      p(glue("{nrow(eventsStatus()[status=='wip'])} events are incomplete."))
+    )
   })
   output$referenceStatusTable=renderTable({
     tbl=eventsStatus()[status!="wip"]
