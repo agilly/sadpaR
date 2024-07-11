@@ -154,7 +154,8 @@ analyzeDirectory=function(dirPath){
     #filesRecursiveWithoutDirs=setdiff(list.files(dirPath, recursive = T, full.names = F), list.dirs(dirPath, recursive = T, full.names = F))
     filesRecursiveWithoutDirs=getFilesRecursiveWithoutDirs(dirPath)
     if(!all(grepl(".*\\.(jpg|jpeg)$", filesRecursiveWithoutDirs, ignore.case = T))){
-        return(list(message=glue("Directory {dirPath} contains files that are not jpg or jpeg: {grep('.*\\.(jpg|jpeg)$', filesRecursiveWithoutDirs, ignore.case = T, value=T, invert=T)}"), value=F))
+      filesNotJpeg=filesRecursiveWithoutDirs[!grepl(".*\\.(jpg|jpeg)$", filesRecursiveWithoutDirs, ignore.case = T)]
+        return(list(message=glue("Directory {dirPath} contains files that are not jpg or jpeg: {paste(filesNotJpeg, collapse=', ')}"), value=F))
     }
     return(list(value=T, dirs=subdirs, files=filesRecursiveWithoutDirs))
 }
