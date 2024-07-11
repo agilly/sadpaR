@@ -11,6 +11,7 @@ library(data.table)
 library(EXIFr)
 library(lubridate)
 library(shinycssloaders)
+library(shinydisconnect)
 
 Sys.setenv(TZ="America/New_York")
 options(tz="America/New_York")
@@ -355,7 +356,7 @@ countFilesPerCam=function(filesRecursiveWithoutDirs){
 
 
 
-ui <- page_fluid(
+ui = page_fluid(
   theme = bs_add_rules(bs_theme(), 
     rules = 
       ".shinyglide {
@@ -367,6 +368,7 @@ ui <- page_fluid(
   ,
   title="Dataset creator",
   useShinyjs(),
+  shinydisconnect::disconnectMessage(overlayOpacity = 0.9),
   card(
     glide_modal,
     fill=F
@@ -381,7 +383,7 @@ ui <- page_fluid(
 #     glide_modal
 # )
 
-server <- function(input, output, session) {
+server = function(input, output, session) {
 
 #  showModal(glide_modal)
     
@@ -503,6 +505,20 @@ getRootsInSystem=function(){
             print("Output directory selected")
             outputDirReactive(gsub("[/\\\\]+", "/", file.path(parseDirPath(roots=getRootsInSystem(), selection=chosenDir), input$datasetName)))
             print(outputDirReactive())
+            # if it doesn't exist, create it in a tryCatch
+            # if it fails, throw a sweetalert
+            if(!dir.exists(outputDirReactive())){
+                tryCatch({
+                    dir.create(outputDirReactive())
+                }, error=function(e){
+                    sendSweetAlert(
+                        title = "Error",
+                        text = glue("Error creating output directory: {e$message}"),
+                        type = "error"
+                    )
+                    return()
+                })
+            }
         }
     # show the div with the extract timestamps button
     shinyjs::show("extractTimestampsDiv")
