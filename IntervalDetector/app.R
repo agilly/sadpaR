@@ -303,7 +303,7 @@ server <- function(input, output, session) {
   })
 
 
-  output$animationContainer=renderUI({imageOutput("animation", height=input$imgSize)})
+  output$animationContainer=renderUI({shinycssloaders::withSpinner(imageOutput("animation", height=input$imgSize))})
 
 
   output$imgct=renderText({req(input$sequence);
@@ -714,7 +714,25 @@ output$CTInEditFrame=renderText({
   rootDir=reactive({parseDirPath(getDrives(), input$inputFolder)})
 
   shinyDirChoose(input, 'rootDir', session=session, roots=getDrives())
+
   userSuppliedRootDir=reactiveVal("")
+
+  # this does not work
+  # observe({
+  #   initRootDir=tryCatch({
+  #     a=read.ini("sadpar.ini")
+  #     ret=""
+  #     if(!is.null(a$app_config$rootDir)) ret=a$app_config$rootDir
+  #     if(VERBOSE) print(glue("Root dir from ini file: {ret}"))
+  #     return(ret)
+  #     }, error=function(e) {
+  #       if(VERBOSE) print(glue("Error reading ini file: {e$message}") )
+  #       return("")
+  #     })
+  #   if(initRootDir!="") userSuppliedRootDir(initRootDir)
+  # })
+  
+
 
   observeEvent(loadedDataset$imagePath, {if(userSuppliedRootDir()=="") userSuppliedRootDir(loadedDataset$imagePath)})
 
@@ -725,6 +743,10 @@ output$CTInEditFrame=renderText({
       userSuppliedRootDir(parseDirPath(getDrives(), input$rootDir))
       #if(.Platform$OS.type=="windows") userSuppliedRootDir(gsub("/", "\\", userSuppliedRootDir(), fixed=T))
       print(glue("Changing Images root dir to {userSuppliedRootDir()}"))
+      # write this in the ini file
+      #prev=read.ini("sadpar.ini")
+      #prev$app_config$rootDir=userSuppliedRootDir()
+      #write.ini(prev, "sadpar.ini")
     }
     }
     )
@@ -1105,7 +1127,7 @@ sidebarLayout(
       tagAppendAttributes(textOutput("imgct"), class="h4"),
       #actionButton("favoriteButton", "Add to favourites", icon=icon("fa-regular", "fa-star")),
       #actionButton("favoriteButton", "Add to favourites", icon=icon("fa-solid", "fa-star", style="color:#E87722")),
-      uiOutput("animationContainer"),
+      shinycssloaders::withSpinner(uiOutput("animationContainer")),
       actionButton("previous", appLang$previousButtonLabel),
       actionButton("replay", appLang$replayButtonLabel),
       actionButton("nextButton", appLang$nextButtonLabel),

@@ -1,4 +1,4 @@
-VERBOSE=F
+VERBOSE=T
 IMG_PER_PAGE=10
 retagMultiUI = function(id, appLang) {
   ns = NS(id)
@@ -21,7 +21,19 @@ retagMultiUI = function(id, appLang) {
       hr(),
       h4("Information"),
       uiOutput(ns("numOfEventsText")),
-      tableOutput(ns("referenceStatusTable"))
+      # a tab, each for one status
+      tabsetPanel(
+        tabPanel("WIP", 
+          tableOutput(ns("referenceStatusTable_wip"))
+        ),
+        tabPanel("Attention", 
+          tableOutput(ns("referenceStatusTable_attention"))
+        ),
+        tabPanel("Complete", 
+          tableOutput(ns("referenceStatusTable_complete"))
+        )
+      )
+      #tableOutput(ns("referenceStatusTable"))
       , 
       width=2 # sidebar panel width
       ),
@@ -62,7 +74,7 @@ retagMultiUI = function(id, appLang) {
   )
 }
 
-retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, rootPath, dataDir) {
+retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRetag, rootPath, dataDir) {
   moduleServer(id, function(input, output, session) {
     ns = session$ns
 
@@ -80,37 +92,145 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
 
 
     # stores events and their status
-    # eventsStatus = reactive({
-    #   req(merged_dt())  
-    #   return(unique(data.table(ctid=merged_dt()$ctid, interval=merged_dt()$interval, status="wip")))
-    # })
 
     dataToDisplay=reactiveVal()
     eventsStatus=reactiveVal()
-    observeEvent(merged_dt(), {
-      if(VERBOSE) print("MERGED_DT OBSERVE CALLED")
+    merged_dt=reactiveVal()
+
+    observeEvent(merged_dt_incoming(), {
+      if(VERBOSE) print("MERGED_DT_INCOMING OBSERVE CALLED")
       # if there are some events in merged_dt that are not in savedRetag, we need to add them
-      print(merged_dt())
-      print("================================")
-      print(savedRetag$status)
-      savedCtidint=unique(savedRetag$status[,paste(ctid, interval)])
-      mergedCtidint=unique(merged_dt()$ctidint)
-      if(length(setdiff(mergedCtidint, savedCtidint))){
-        print("ADDING NEW EVENTS")
-        newEvents=unique(merged_dt()[!ctidint %in% savedCtidint][,.(ctid, interval)])
-        print(newEvents)
+      if(VERBOSE) print(merged_dt_incoming())
+      if(VERBOSE) print("================================")
+      if(VERBOSE) print(savedRetag$status)
+
+      # this observer handles changes in the incoming data
+      # this is changed only if the user has changed the tagging
+      # savedRetag is the state that was loaded from the saved data
+      # if dataToDisplay is NULL, we are in the init state and we need to load the saved data if it exists, taking into account the fact that the user may have added new events
+
+      if(is.null(dataToDisplay())){
+        if(VERBOSE) print("DATA TO DISPLAY IS NULL - INIT")
+        print("DEBUG SAVED")
+        print(savedRetag$status[ctid=="T1-NK12 IE016" & interval==175])
+        print("DEBUG INCOMING")
+        print(merged_dt_incoming()[ctidint=="T1-NK12 IE016 175"])	
+        if(!is.null(savedRetag$status)){
+          if(VERBOSE) print("SAVED RETAG STATUS EXISTS")
+          if(VERBOSE) print(savedRetag$status)
+          # if there are some events in merged_dt that are not in savedRetag, we need to add them
+          if(VERBOSE) print("ADDING NEW EVENTS FROM INCOMING TO SAVED")
+          newEvents=unique(merged_dt_incoming()[!(ctidint %in% savedRetag$status[,paste(ctid, interval)])][,.(ctid, interval)])
+          print(newEvents)
+          newEvents=data.table(ctid=newEvents$ctid, interval=newEvents$interval, status="wip")
+          newEvents=rbind(savedRetag$status, newEvents)
+          if(VERBOSE) print("STATUS AFTER ADDING NEW EVENTS")
+          if(VERBOSE) print(newEvents)
+          # if there are events in saved that are not in incoming, this means events are no longer multispecies and need to be removed
+          if(VERBOSE) print("REMOVING OLD EVENTS")
+          removedEvents=unique(savedRetag$status[!(paste(ctid, interval) %in% merged_dt_incoming()$ctidint)][,.(ctid, interval)])
+          print(removedEvents)
+          newEvents=newEvents[paste(ctid, interval) %in% merged_dt_incoming()$ctidint]
+          eventsStatus(newEvents)
+        }else{
+          if(VERBOSE) print("SAVED RETAG STATUS DOES NOT EXIST")
+          eventsStatus(unique(data.table(ctid=merged_dt_incoming()$ctid, interval=merged_dt_incoming()$interval, status="wip")))
+        }
+        if(VERBOSE) print("SAVED RETAG TAGS")
+        if(VERBOSE) print(savedRetag$tags)
+        if(is.null(savedRetag$tags)) {
+          userSelections(data.frame(fn = character(), species = character(), stringsAsFactors = FALSE))
+        }
+        else {
+          userSelections(savedRetag$tags)
+        } 
+        dataToDisplay(merged_dt_incoming())
+        merged_dt(merged_dt_incoming())
+
+        # if there are some species in saved tags that are not in the incoming data, we need to remove them
+        if(VERBOSE) print("Current species list by ctidint")
+        existingTags=copy(userSelections())
+        new_allowed_species=merged_dt_incoming()[,unlist(paste(fn,species)), by=fn]$V1
+        existingTags[,fnspecies:=paste(fn, species)]
+        newTags=existingTags[fnspecies %in% new_allowed_species]
+        if(VERBOSE && nrow(existingTags) != nrow(newTags)) print(glue("REMOVED {nrow(existingTags) - nrow(newTags)} species from userSelections"))
+        newTags[,fnspecies:=NULL]
+        userSelections(newTags)
+
+        return()
+      }
+
+      # if dataToDisplay is not null, it means the user has added or removed events
+      # we assume the saved situation has already been handled by the above
+      # we need to handle added events the same as above
+      # we need to handle removed events by removing them from the status table and deleting the corresponding tags from userSelections
+      # the species may also have changed for an event, so we need to remove the tags corresponding to any species not present anymore
+
+      if(!is.null(dataToDisplay())){
+        if(VERBOSE) print("DATA TO DISPLAY IS NOT NULL")
+        print("DEBUG SAVED")
+        print(savedRetag$status[ctid=="T1-NK12 IE016" & interval==175])
+        print("DEBUG INCOMING")
+        print(merged_dt_incoming()[ctidint=="T1-NK12 IE016 175"])	
+        print("DEBUG RAM")
+        print(dataToDisplay()[ctidint=="T1-NK12 IE016 175"])
+        if(VERBOSE) print("EXISTING STATUS")
+        if(VERBOSE) print(eventsStatus())
+        if(VERBOSE) print("EXISTING TAGS")
+        if(VERBOSE) print(userSelections())
+        if(VERBOSE) print("MERGED DT INCOMING")
+        if(VERBOSE) print(merged_dt_incoming())
+        # if there are some events in merged_dt that are not in eventStatus, we need to add them
+        if(VERBOSE) print("ADDING NEW EVENTS FROM INCOMING")
+        newEvents=unique(merged_dt_incoming()[!(ctidint %in% eventsStatus()[,paste(ctid, interval)])][,.(ctid, interval)])
         newEvents=data.table(ctid=newEvents$ctid, interval=newEvents$interval, status="wip")
-        savedRetag$status=rbind(savedRetag$status, newEvents)
+        if(VERBOSE) print(newEvents)
+        newEvents=rbind(eventsStatus(), newEvents)
+        newEvents[,ctidint:=paste(ctid, interval)]
+        if(VERBOSE) print("STATUS AFTER ADDING NEW EVENTS")
+        if(VERBOSE) print(newEvents)
+        # if there are some events in eventsStatus that are not in merged_dt, we need to remove them
+        if(VERBOSE) print("REMOVING OLD EVENTS")
+
+        removedEvents=unique(newEvents[!(ctidint %in% merged_dt_incoming()$ctidint)][,.(ctid, interval)])
+        print(removedEvents)
+        newEvents=newEvents[ctidint %in% merged_dt_incoming()$ctidint]
+        if(VERBOSE) print(" STATUS AFTER REMOVING OLD EVENTS")
+        if(VERBOSE) print(newEvents)
+        newEvents[,ctidint:=NULL]
+        merged_dt=merged_dt_incoming()
+        dataToDisplay(merged_dt_incoming())
+        eventsStatus(newEvents)
+
+        # if there are some species in userSelections that are not in the incoming data, we need to remove them
+        if(VERBOSE) print("Current species list by ctidint")
+        existingTags=copy(userSelections())
+        new_allowed_species=merged_dt_incoming()[,unlist(paste(fn,species)), by=fn]$V1
+        existingTags[,fnspecies:=paste(fn, species)]
+        newTags=existingTags[fnspecies %in% new_allowed_species]
+        if(VERBOSE && nrow(existingTags) != nrow(newTags)) print(glue("REMOVED {nrow(existingTags) - nrow(newTags)} species from userSelections"))
+        newTags[,fnspecies:=NULL]
+        userSelections(newTags)
       }
-      if(is.null(savedRetag$status)) eventsStatus(unique(data.table(ctid=merged_dt()$ctid, interval=merged_dt()$interval, status="wip")))
-      else eventsStatus(savedRetag$status)
-      if(is.null(savedRetag$tags)) {
-        userSelections(data.frame(fn = character(), species = character(), stringsAsFactors = FALSE))
-      }
-      else {
-        userSelections(savedRetag$tags)
-      } 
-      dataToDisplay(merged_dt())
+
+      # savedCtidint=unique(savedRetag$status[,paste(ctid, interval)])
+      # mergedCtidint=unique(merged_dt_incoming()$ctidint)
+      # if(length(setdiff(mergedCtidint, savedCtidint))){
+      #   print("ADDING NEW EVENTS")
+      #   newEvents=unique(merged_dt_incoming()[!ctidint %in% savedCtidint][,.(ctid, interval)])
+      #   print(newEvents)
+      #   newEvents=data.table(ctid=newEvents$ctid, interval=newEvents$interval, status="wip")
+      #   savedRetag$status=rbind(savedRetag$status, newEvents)
+      # }
+      # if(is.null(savedRetag$status)) eventsStatus(unique(data.table(ctid=merged_dt_incoming()$ctid, interval=merged_dt()$interval, status="wip")))
+      # else eventsStatus(savedRetag$status)
+      # if(is.null(savedRetag$tags)) {
+      #   userSelections(data.frame(fn = character(), species = character(), stringsAsFactors = FALSE))
+      # }
+      # else {
+      #   userSelections(savedRetag$tags)
+      # } 
+      # dataToDisplay(merged_dt_incoming())
     })
     
     numberOfPages = reactive({
@@ -483,6 +603,21 @@ retagMultiServer = function(id, merged_dt, species_dt, appLang, savedRetag, root
   })
   output$referenceStatusTable=renderTable({
     tbl=eventsStatus()[status!="wip"]
+    if(nrow(tbl)) tbl else NULL
+    })
+
+  output$referenceStatusTable_wip=renderTable({
+    tbl=eventsStatus()[status=="wip"]
+    if(nrow(tbl)) tbl else NULL
+    })
+
+  output$referenceStatusTable_attention=renderTable({
+    tbl=eventsStatus()[status=="attention"]
+    if(nrow(tbl)) tbl else NULL
+    })
+
+  output$referenceStatusTable_complete=renderTable({
+    tbl=eventsStatus()[status=="complete"]
     if(nrow(tbl)) tbl else NULL
     })
 
