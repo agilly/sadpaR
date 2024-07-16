@@ -69,7 +69,8 @@ createSingleSequence = function(interval, intervals_loc_ct, tempDir, loc_ct_dir,
     # build command using glue
     command=glue::glue("ffmpeg -y -framerate 2 -i {file.path(tempDir, '%d.jpg', fsep=fsep)} -loop -1 {vfarg} {file.path(loc_ct_dir, paste0('sequence.', interval, '.gif'), fsep=fsep)}")
     # run command, error if it fails
-    if(system(command, intern=F)){
+    result=if(.Platform$OS.type=="windows") shell(command, intern=F) else system(command, intern=F)
+    if(result){
         if(!is.null(session))
             sendSweetAlert(
                 session = session,
