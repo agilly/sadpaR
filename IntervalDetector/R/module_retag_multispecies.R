@@ -112,9 +112,9 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
       if(is.null(dataToDisplay())){
         if(VERBOSE) print("DATA TO DISPLAY IS NULL - INIT")
         print("DEBUG SAVED")
-        print(savedRetag$status[ctid=="T1-NK12 IE016" & interval==175])
+        print(savedRetag$status[ctid=="T5-NK39 IE095" & interval==109])
         print("DEBUG INCOMING")
-        print(merged_dt_incoming()[ctidint=="T1-NK12 IE016 175"])	
+        print(merged_dt_incoming()[ctidint=="T5-NK39 IE095 109"])	
         if(!is.null(savedRetag$status)){
           if(VERBOSE) print("SAVED RETAG STATUS EXISTS")
           if(VERBOSE) print(savedRetag$status)
@@ -169,11 +169,11 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
       if(!is.null(dataToDisplay())){
         if(VERBOSE) print("DATA TO DISPLAY IS NOT NULL")
         print("DEBUG SAVED")
-        print(savedRetag$status[ctid=="T1-NK12 IE016" & interval==175])
+        print(savedRetag$status[ctid=="T5-NK39 IE095" & interval==109])
         print("DEBUG INCOMING")
-        print(merged_dt_incoming()[ctidint=="T1-NK12 IE016 175"])	
+        print(merged_dt_incoming()[ctidint=="T5-NK39 IE095 109"])	
         print("DEBUG RAM")
-        print(dataToDisplay()[ctidint=="T1-NK12 IE016 175"])
+        print(dataToDisplay()[ctidint=="T5-NK39 IE095 109"])
         if(VERBOSE) print("EXISTING STATUS")
         if(VERBOSE) print(eventsStatus())
         if(VERBOSE) print("EXISTING TAGS")
@@ -198,7 +198,7 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
         if(VERBOSE) print(" STATUS AFTER REMOVING OLD EVENTS")
         if(VERBOSE) print(newEvents)
         newEvents[,ctidint:=NULL]
-        merged_dt=merged_dt_incoming()
+        merged_dt(merged_dt_incoming())
         dataToDisplay(merged_dt_incoming())
         eventsStatus(newEvents)
 
@@ -397,6 +397,7 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
             speciesNames=speciesNames[,.(id, friendlyName)]
             speciesInSequence(speciesNames)
             initState(T)
+            if(VERBOSE) print(speciesInSequence())
             # update the page select
             updateSelectInput(session, "pageSelect", choices=1:numberOfPages(), selected=1)
         }
