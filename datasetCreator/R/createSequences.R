@@ -37,9 +37,10 @@ checkIfSomeSequencesExist=function(intervalFile, outputDir){
     return(FALSE)
 }
 
-createSingleSequence = function(interval, intervals_loc_ct, tempDir, loc_ct_dir, maxImagesBeforeDownsampling, verbose, session) {
+createSingleSequence = function(this_interval, intervals_loc_ct, tempDir, loc_ct_dir, maxImagesBeforeDownsampling, verbose, session) {
     fsep=guessFsep()
     fsep="/"
+    if(verbose) cli::cli_inform("createSingleSequence called with interval: {this_interval}, tempDir: {tempDir}, loc_ct_dir: {loc_ct_dir}, maxImagesBeforeDownsampling: {maxImagesBeforeDownsampling}, verbose: {verbose}"   )
     # if the tempdir has files, remove them
     if(verbose) cli::cli_inform("tempDir: {tempDir}")
     if(verbose) cli::cli_inform("Number of files in temp dir: {length(list.files(tempDir))}")
@@ -47,7 +48,7 @@ createSingleSequence = function(interval, intervals_loc_ct, tempDir, loc_ct_dir,
         unlink(list.files(tempDir, full.names = T), recursive=T)
     if(verbose) cli::cli_inform("Number of files in temp dir after unlink: {length(list.files(tempDir))}")
     # copy all the files for this interval to the temp dir, renaming them i.jpg where i is the index
-    filesInInterval=intervals_loc_ct[interval==interval]$fn
+    filesInInterval=intervals_loc_ct[interval==this_interval]$fn
     isDownsampled=F
     if(length(filesInInterval)>maxImagesBeforeDownsampling){
         # equally space the files so that the total number of files is approximately maxImagesBeforeDownsampling
@@ -67,7 +68,7 @@ createSingleSequence = function(interval, intervals_loc_ct, tempDir, loc_ct_dir,
     else
         vfarg="-vf scale=-1:650"
     # build command using glue
-    command=glue::glue("ffmpeg -y -framerate 2 -i {file.path(tempDir, '%d.jpg', fsep=fsep)} -loop -1 {vfarg} {file.path(loc_ct_dir, paste0('sequence.', interval, '.gif'), fsep=fsep)}")
+    command=glue::glue("ffmpeg -y -framerate 2 -i {file.path(tempDir, '%d.jpg', fsep=fsep)} -loop -1 {vfarg} {file.path(loc_ct_dir, paste0('sequence.', this_interval, '.gif'), fsep=fsep)}")
     # run command, error if it fails
     result=if(.Platform$OS.type=="windows") shell(command, intern=F) else system(command, intern=F)
     if(result){
@@ -107,7 +108,9 @@ createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=10
         dir.create(tempDir, recursive=T)
     intervals[,location_ct:=paste(location, ct, sep=".")]
     locations_cts=unique(intervals$location_ct)
+    if(verbose) print(locations_cts)
     totalNumberOfSequences=nrow(unique(intervals[,.(location, ct, interval)]))
+    if(verbose) cli::cli_inform("Total number of sequences: {totalNumberOfSequences}")
     numberOfSequencesNeededToIncreaseByOnePercent=round(totalNumberOfSequences/100)
     if(!is.null(session)){
         sendSweetAlert(
@@ -133,8 +136,11 @@ createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=10
 
     done_intervals=0
     for(loc_ct in locations_cts){
+        if(verbose) cli::cli_inform("loc_ct: {loc_ct}")
         # get the intervals for this location, ct
         intervals_loc_ct=intervals[location_ct==loc_ct]
+        if(verbose) cli::cli_inform("Number of intervals in loc_ct: {length(unique(intervals_loc_ct$interval))}")
+        if(verbose) print(intervals_loc_ct)
         # create a subdir for the location_ct if it doesn't exist
         loc_ct_dir=file.path(outputDir, loc_ct, fsep = fsep)
         if(!dir.exists(loc_ct_dir))
@@ -142,6 +148,7 @@ createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=10
         # for each unique interval
         intervalsInLocCt=unique(intervals_loc_ct$interval)
         for(interval in intervalsInLocCt){
+            if(verbose) cli::cli_inform("interval: {interval}")
             done_intervals=done_intervals+1
             if(overwrite || !file.exists(file.path(loc_ct_dir, paste0("sequence.", interval, ".gif"), fsep = fsep)))
                 createSingleSequence(interval, intervals_loc_ct, tempDir, loc_ct_dir, maxImagesBeforeDownsampling, verbose, session)

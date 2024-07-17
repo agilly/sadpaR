@@ -398,18 +398,20 @@ getRootsInSystem=function(){
         availableDriveLetters=substr(sysdrivereport[-c(1, length(sysdrivereport))], 1, 1)
         drives = setNames(paste0(availableDriveLetters, ":"), glue("{availableDriveLetters} drive"))
         userDir = setNames(Sys.getenv("USERPROFILE"), Sys.getenv("USERNAME"))
-        platformIndependentDebugPath="T:/CT_Data/sus_scrofa"
-        return(c(drives, userDir, setNames(platformIndependentDebugPath, "debug")))
+        #platformIndependentDebugPath="T:/CT_Data/sus_scrofa"
+        #return(c(drives, userDir, setNames(platformIndependentDebugPath, "debug")))
+        return(c(drives, userDir))
     }else{
         # if not windows, return what's in /mnt, /, and the home directory
         roots=setNames(c("/mnt", "/", Sys.getenv("HOME")), c("mnt", "root", "home"))
-        platformIndependentDebugPath="/mnt/t/CT_Data/sus_scrofa"
-        roots=c(roots, setNames(platformIndependentDebugPath, "debug"))
+        #platformIndependentDebugPath="/mnt/t/CT_Data/sus_scrofa"
+        #roots=c(roots, setNames(platformIndependentDebugPath, "debug"))
         return(roots)
     }
 }
 
-    shinyDirChoose(input, "loadDir", root=getRootsInSystem(), defaultRoot = "debug")
+    #shinyDirChoose(input, "loadDir", root=getRootsInSystem(), defaultRoot = "debug")
+    shinyDirChoose(input, "loadDir", root=getRootsInSystem())
 
     loadedDirectory=reactiveVal(NULL)
     loadedSubdirs=reactiveVal(NULL)
@@ -491,7 +493,8 @@ getRootsInSystem=function(){
 
     })
 
-  shinyDirChoose(input, "outputDir", root=getRootsInSystem(), defaultRoot = "debug")
+  #shinyDirChoose(input, "outputDir", root=getRootsInSystem(), defaultRoot = "debug")
+  shinyDirChoose(input, "outputDir", root=getRootsInSystem())
 
     outputDirReactive=reactiveVal(NULL)
 
@@ -640,8 +643,10 @@ getRootsInSystem=function(){
 
  shinyjs::runjs('Shiny.setInputValue("datasetComplete", "")')
 
-  shinyFileChoose(input, "speciesFile", roots=getRootsInSystem(), defaultRoot = "debug")
-  shinyFileChoose(input, "stationsFile", roots=getRootsInSystem(), defaultRoot = "debug")
+  #shinyFileChoose(input, "speciesFile", roots=getRootsInSystem(), defaultRoot = "debug")
+  shinyFileChoose(input, "speciesFile", roots=getRootsInSystem())
+  #shinyFileChoose(input, "stationsFile", roots=getRootsInSystem(), defaultRoot = "debug")
+  shinyFileChoose(input, "stationsFile", roots=getRootsInSystem())
 
   # disable the text inputs
   shinyjs::disable("speciesFilePathTextInput")
