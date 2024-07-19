@@ -110,7 +110,7 @@ createIntervals=function(dateTimeDF, baseDir, outDir, intervalDuration=30){
         dir.create(metadataDir)
     }
     # write the intervals to metadata/interval.csv
-    fwrite(dateTimeDF[,.(location, ct, fn, interval)], file.path(metadataDir, "interval.csv"))
+    fwrite(dateTimeDF[,.(location, ct, fn, interval, dt)], file.path(metadataDir, "intervals.csv"))
     # stop spinner
     remove_modal_spinner()
     sendSweetAlert(
@@ -740,7 +740,13 @@ getRootsInSystem=function(){
         fwrite(ctdf[,.(Station=location, `Camera ID`=ct)], file.path(metadataDir, "ct.csv"))
         # write metadata.csv with header Landscape	Block	Code	Season
         fwrite(data.table(Landscape=input$landscape, Block=input$block, Code=input$code, Season=input$season), file.path(metadataDir, "metadata.csv"))
-
+        # if the tagging directory doesn't exist, create it
+        taggingDir=file.path(outputDirReactive(), "tagging")
+        if(!dir.exists(taggingDir))
+            dir.create(taggingDir)
+        
+        # write an empty tagging/eventTagging.csv with header ctid	event	numInd	indID	speciesID	indName	Sex	Age
+        fwrite(data.table(ctid=NA, event=NA, numInd=NA, indID=NA, speciesID=NA, indID=NA, speciesID=NA, indName=NA, Sex=NA, Age=NA), file.path(outputDirReactive(), "tagging", "eventTagging.csv"))
 
         }, error=function(e){
             sendSweetAlert(

@@ -7,7 +7,7 @@ largestCommonSubstring=function(words){
 }
 
 largestCommonPath=function(l){
-  l=strsplit(l, "/")
+  l=strsplit(l, "[/\\\\]")
   maxPossible=min(sapply(l, length))
   l=lapply(l, function(x){x[1:maxPossible]})
   l=do.call(rbind.data.frame, l)

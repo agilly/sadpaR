@@ -16,7 +16,10 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
 
       chosenCT=input$whichCT
       print(666)
+      if(VERBOSE) cli::cli_inform("chosenCT: {chosenCT}")
       selectedFn=loadedDataset$interval_data[location==strsplit(chosenCT, " ")[[1]][1] & ct == strsplit(chosenCT, " ")[[1]][2],fn]
+      if(VERBOSE) cli::cli_inform("selectedFn: {selectedFn}")
+      if(VERBOSE) cli::cli_inform("loadedDataset$imagePath: {loadedDataset$imagePath}")
       choices=tstrsplit(selectedFn, loadedDataset$imagePath)[[2]]
       updateSelectInput(session, inputId="PicInSequence", choices=choices, selected=choices[1])
     }

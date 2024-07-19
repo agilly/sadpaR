@@ -16,7 +16,12 @@ checkSelectedFolder=function(session, input, output, rootDir, loadedDataset, cur
     if(file.exists(paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/"))){
     #setProgress(0.25, detail = paste("Reading tagging information"))
     updateProgressBar(session = session, id="loadDatasetPBar", value=25, title="Reading tagging information")
-    currentTagging$internalTable=fread(paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/"), colClasses=c(indName="character", Sex="character", Age="character"))
+    currentTagging$internalTable=fread(paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/"), 
+          colClasses=c(ctid="character", event="integer", numInd="integer", indID="integer", speciesID="integer",indName="character", Sex="character", Age="character"))
+  }
+  else {
+    # ctid	event	numInd	indID	speciesID	indName	Sex	Age
+     currentTagging$internalTable=data.table(ctid=character(0), event=integer(0), numInd=integer(0), indID=integer(0), speciesID=integer(0), indName=character(0), Sex=character(0), Age=character(0))
   }
   }
   appPaths$taggingCSV=paste(rootDir(), "tagging", "eventTagging.csv" ,sep="/")
@@ -62,7 +67,7 @@ checkSelectedFolder=function(session, input, output, rootDir, loadedDataset, cur
     showNotification("We tried finding 10 camera traps from ct.csv in the sequence folder and failed.
     Usually this indicates mismatching CT and sequence data.
     If you think this is wrong, please try reloading the dataset.", type="error")
-    return(F)
+    #return(T)
   }
   appPaths$sequenceDir=paste(rootDir(), "sequences" ,sep="/")
 
@@ -92,7 +97,7 @@ checkSelectedFolder=function(session, input, output, rootDir, loadedDataset, cur
     #return(F)
     appPaths$dataDirRoot=rootDir()
   
-
+  if(VERBOSE) cli::cli_inform("All checks passed")
   return(T)
 }
 
@@ -112,17 +117,50 @@ updateTaggingOnSeqChange=function(session, input, output, currentTagging, loaded
   print(currentTagging$displayTable)
 }
 
+
+# Function to read interval data with error handling
+read_interval_data = function(path, this_session) {
+  # Define the expected column names
+  expected_cols = c("fn", "dt", "location", "ct", "interval")
+  
+  # Attempt to read the file
+  result = tryCatch({
+    data = fread(path)
+    data[,fn:=gsub("\\\\", "/", fn)]
+    # Check if all expected columns are present
+    if (!all(expected_cols %in% colnames(data))) {
+      shinyWidgets::sendSweetAlert(session=this_session, title = "Error", text = glue("Missing columns in interval data : {paste(setdiff(expected_cols, colnames(data)), collapse = ', ')}"), type = "error")
+      return(NULL)
+    }
+    
+    return(data)
+  }, error = function(e) {
+    # Display error message using sendSweetAlert if read fails or columns are missing
+    shinyWidgets::sendSweetAlert(session=this_session,title = "Error", text = glue("Failed to read interval data: {e$message}"), type = "error")
+    return(NULL) # Return NULL on error
+  })
+  
+  return(result)
+}
+
+
 loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagging, dur, retag){
   #showNotification("Loading datasets...", type="message")
   #setProgress(0.6, detail = paste("Reading intervals"))
   updateProgressBar(session = session, id="loadDatasetPBar", value=60, title="Reading intervals")
-  interval_data=fread(paste(rootDir(), "metadata", "intervals.csv" ,sep="/"))
+  pathToIntervals=paste(rootDir(), "metadata", "intervals.csv" ,sep="/")
+  interval_data=read_interval_data(path=pathToIntervals, this_session=session)
+  if(VERBOSE) cli::cli_inform("Reading intervals from {pathToIntervals}")
+  if(VERBOSE) cli::cli_inform("Read {nrow(interval_data)} rows for {nrow(unique(interval_data[,.(ct,interval)]))} camera traps")
+  if(is.null(interval_data)) return(F)
+  
   #print("this is a debug version. Data will load automatically. Remove line 78 in dataMgmt.R")
   #interval_data[,fn:=sub("/mnt/d/CT II/NKD_2022/Data processing/raw_images/","/mnt/c/Users/R. Tidi Victor/NKD_2022/",fn, fixed=T)]
   interval_data[,ctid:=paste(location, ct)]
   choices=unique(interval_data$ctid)
   #print(head(choices))
   print("loadDataset called")
+  if(VERBOSE) print("{length(choices)} camera traps found")
   updateSelectInput(session, inputId = "whichCT", choices=choices, selected=choices[1])
   updateSelectInput(session, inputId = "whichCTSeq", choices=choices, selected=choices[1])
   updateSelectInput(session, inputId = "tagCT", choices=choices, selected=choices[1])
@@ -130,7 +168,6 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   updateSelectInput(session, inputId = "sequence", choices=seqChoices)
   updateSelectInput(session, inputId = "tagSequence", choices=seqChoices)
   updateSelectInput(session, inputId = "ChooseEdit", choices=seqChoices, selected=seqChoices[1])
-
   loadedDataset$interval_data=interval_data; #fread(unz(fn, "intervals.csv")),
   #setProgress(0.7, detail = paste("Loading other metadata"))
   updateProgressBar(session = session, id="loadDatasetPBar", value=70, title="Loading other metadata")
@@ -160,6 +197,11 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   # print("------------")
   # print(loadedDataset$species_data)
   # print("------------")
+  if(VERBOSE) cli::cli_inform("Merging tagging data with species data")
+  if(VERBOSE) print("currentTagging$internalTable")
+  if(VERBOSE) print(currentTagging$internalTable)
+  if(VERBOSE) print("loadedDataset$species_data")
+  if(VERBOSE) print(loadedDataset$species_data)
   dispTable=merge(currentTagging$internalTable, loadedDataset$species_data, by.x="speciesID", by.y="id", all.x=T)
   # print(dispTable)
   # print("------------")
@@ -170,21 +212,26 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   #printv(input$tagCT, input$tagSequence)
   dispTable=dispTable[ctid==choices[1] & event==seqChoices[1]]
   dispTable[,c("ctid", "event", "numInd", "speciesID"):=NULL]
-  print(dispTable)
-  print("BYE====\n\n\n")
+
+  if(VERBOSE) cli::cli_inform("Setting column order")
   setcolorder(dispTable, c("indID", "indName", "Common Name", "Lao Name", "Species Name", "Group", "Family", "Order", "Sex", "Age"))
   setnames(dispTable, c("id", "individual", "common_name", "lao_name", "scientific_name", "group", "family", "order", "Sex", "Age"))
   currentTagging$displayTable=dispTable
+  if(VERBOSE) print("currentTagging$displayTable has {nrow(currentTagging$displayTable)} rows")
+
 
   #setProgress(0.9, detail = paste("Computing durations"))
   updateProgressBar(session = session, id="loadDatasetPBar", value=90, title="Computing durations")
   dat=interval_data
+  if(VERBOSE) cli::cli_inform("Computing durations")
+  if(VERBOSE) print(head(dat))
   dat=dat[ctid==choices[1]]
   durations=dat[,list(mean(as.numeric(dt)), .N, difftime(max(as.POSIXct(dt, origin="1970-01-01 00:00:00")), min(as.POSIXct(dt, origin="1970-01-01 00:00:00")), units="min")), by=interval]
   setnames(durations, c("sequence", "avgdate", "num_images", "duration"))
   #print(head(durations))
+  if(VERBOSE) print("Converting to chron")
   durations[,avgdate:=as.character(chron(avgdate))]
-  #print(head(durations))
+  if(VERBOSE) print("Converting to numeric")
   durations[,duration:=ceiling(as.numeric(duration))]
   setcolorder(durations, c("avgdate", "sequence", "num_images", "duration"))
   dur$durations=as.data.table(durations)
@@ -196,10 +243,13 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   updateProgressBar(session = session, id="loadDatasetPBar", value=90, title="Loading multispecies tags")
   if(file.exists(paste(rootDir(), "tagging", "multipleEventTags.csv" ,sep="/"))){
     retag$tags=fread(paste(rootDir(), "tagging", "multipleEventTags.csv" ,sep="/"))
-  }
+  } else
+    retag$tags=data.table(fn=character(0), species=character(0))
   if(file.exists(paste(rootDir(), "tagging", "multipleEventStatus.csv" ,sep="/"))){
     retag$status=fread(paste(rootDir(), "tagging", "multipleEventStatus.csv" ,sep="/"))
-  }
+  }else
+    retag$status=data.table(ctid=character(0), interval=integer(0), status=character(0))
+
   updateProgressBar(session = session, id="loadDatasetPBar", value=100, title="Dataset finished loading")
   return(T)
 }
