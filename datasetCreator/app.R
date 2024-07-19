@@ -746,7 +746,7 @@ getRootsInSystem=function(){
             dir.create(taggingDir)
         
         # write an empty tagging/eventTagging.csv with header ctid	event	numInd	indID	speciesID	indName	Sex	Age
-        fwrite(data.table(ctid=NA, event=NA, numInd=NA, indID=NA, speciesID=NA, indID=NA, speciesID=NA, indName=NA, Sex=NA, Age=NA), file.path(outputDirReactive(), "tagging", "eventTagging.csv"))
+        fwrite(data.table(ctid=NA, event=NA, numInd=NA, indID=NA, speciesID=NA, indName=NA, Sex=NA, Age=NA), file.path(outputDirReactive(), "tagging", "eventTagging.csv"))
 
         }, error=function(e){
             sendSweetAlert(
