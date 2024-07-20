@@ -109,7 +109,7 @@ createIntervals=function(dateTimeDF, baseDir, outDir, intervalDuration=30){
     if(!dir.exists(metadataDir)){
         dir.create(metadataDir)
     }
-    # write the intervals to metadata/interval.csv
+    # write the intervals to metadata/intervals.csv
     fwrite(dateTimeDF[,.(location, ct, fn, interval, dt)], file.path(metadataDir, "intervals.csv"))
     # stop spinner
     remove_modal_spinner()
@@ -775,7 +775,7 @@ getRootsInSystem=function(){
 
   observeEvent(input$makeSequences, {
     # check if some sequences already exist
-    pathToIntervals=file.path(outputDirReactive(), "metadata", "interval.csv")
+    pathToIntervals=file.path(outputDirReactive(), "metadata", "intervals.csv")
     if(checkIfSomeSequencesExist(intervalFile = pathToIntervals, outputDir = outputDirReactive())){
         shinyWidgets::confirmSweetAlert(
             inputId = "overwriteSequences",
@@ -787,13 +787,13 @@ getRootsInSystem=function(){
             btn_colors=c("#00796B", "#ff9822")
             )
     } else {
-        createSequences(file.path(outputDirReactive(), "metadata", "interval.csv"), file.path(outputDirReactive(), "sequences"), session=session)
+        createSequences(file.path(outputDirReactive(), "metadata", "intervals.csv"), file.path(outputDirReactive(), "sequences"), session=session)
     }
   })
 
   observeEvent(input$overwriteSequences, {
     # createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=100, session=NULL, verbose=F, overwrite=T)
-        createSequences(file.path(outputDirReactive(), "metadata", "interval.csv"), file.path(outputDirReactive(), "sequences"), session=session, overwrite=input$overwriteSequences)
+        createSequences(file.path(outputDirReactive(), "metadata", "intervals.csv"), file.path(outputDirReactive(), "sequences"), session=session, overwrite=input$overwriteSequences)
   })
 }
 
