@@ -165,7 +165,7 @@ makeRecordTableServer = function(id, intervals, tags, species, multispecies_tagg
       if(VERBOSE) print(currentTags)
       if(VERBOSE) print("====================")
       currentIntervals=unique(copy(intervals())[,ctidint:=paste(ctid, interval)][,.(ctid, interval, ctidint)])
-      iif(VERBOSE) print(currentIntervals)
+      if(VERBOSE) print(currentIntervals)
       intervalStatus=merge(currentIntervals, currentTags, by="ctidint", all.x=T)
       intervalStatus[is.na(tagged),tagged:=F]
       if(all(intervalStatus$tagged))
