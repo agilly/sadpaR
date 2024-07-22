@@ -6,9 +6,9 @@ library(data.table)
 
 
 makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRootOriginal){
-    multagging=multispecies_tagging
-    d=intervals
-    tag=tags
+    multagging=multispecies_tagging()
+    d=intervals()
+    tag=tags()
     tagsp=merge(tag, species, by.x="speciesID", by.y="id", all.x=T)
     tagsp=tagsp[!is.na(speciesID)]
     tagsp[,species_name:=paste0(`Common Name`, " - [",`Lao Name`, '] (', `Species Name`, ')')]
@@ -92,6 +92,10 @@ makeRecordTableUI = function(id, appLang) {
     ns = NS(id)
     tagList(
       fluidRow(
+        uiOutput(ns("untaggedEvents")),
+        uiOutput(ns("untaggedMulSpEvents"))
+      ),
+      fluidRow(
         # column(3,
         actionBttn(inputId=ns("generateRecordTableBttn"), label=appLang$generateRecordTableBttn, icon("table"), color="primary", inline=T),
         # ),
@@ -103,11 +107,73 @@ makeRecordTableUI = function(id, appLang) {
     )
 }
 
-makeRecordTableServer = function(id, intervals, tags, species, multispecies_tagging, imageRootOriginal) {
+makeRecordTableServer = function(id, intervals, tags, species, multispecies_tagging, imageRootOriginal, appLang) {
   moduleServer(id, function(input, output, session) {
     ns = session$ns
 
     recordTableReactive=reactiveVal(NULL)
+
+    untaggedEvents=reactive({
+      cli::cli_inform("Checking for untagged events")
+      currentTags=copy(tags())
+      currentTags=currentTags[,ctidint:=paste(ctid, event)]
+      currentTags[,tagged:=T]
+      currentTags=unique(currentTags[,.(ctidint, tagged)])
+      if(VERBOSE) print(currentTags)
+      if(VERBOSE) print("====================")
+      currentIntervals=unique(copy(intervals())[,ctidint:=paste(ctid, interval)][,.(ctid, interval, ctidint)])
+      if(VERBOSE) print(currentIntervals)
+      intervalStatus=merge(currentIntervals, currentTags, by="ctidint", all.x=T)
+      intervalStatus[is.na(tagged),tagged:=F]
+      if(all(intervalStatus$tagged))
+        return(NULL)
+      else {
+        return(intervalStatus[tagged==F])
+      }
+    })
+
+    output$untaggedEvents=renderUI({
+      if(is.null(untaggedEvents()))
+        return(NULL)
+      else {
+        if(VERBOSE) print("untagged events")
+        if(VERBOSE) print(nrow(untaggedEvents()))
+        if(VERBOSE) print(length(unique(intervals()[,paste(ctid,interval)])))
+        percentUntagged=round(100*nrow(untaggedEvents())/length(unique(intervals()[,paste(ctid,interval)])), 2)
+        if(VERBOSE) print(percentUntagged)
+        return(tagList(
+          h3("Events currently untagged"),
+          h4(glue("{nrow(untaggedEvents())} ({percentUntagged}%) {appLang$numUntaggedEventsLeftWarning}")),
+          tableOutput(ns("untaggedEventsTable"))
+        ))
+      }
+    })
+
+    output$untaggedEventsTable=renderTable({
+      req(untaggedEvents())
+      tableToDisplay=copy(untaggedEvents())[,paste(interval,collapse=", "), by=ctid][,.(`Camera Trap`=ctid, `Intervals`=V1)]
+      return(tableToDisplay)
+
+    })
+
+    untaggedMulSpEvents=reactive({
+      cli::cli_inform("Checking for untagged multiple species events")
+      currentTags=copy(tags())
+      currentTags=currentTags[,ctidint:=paste(ctid, event)]
+      currentTags[,tagged:=T]
+      currentTags=unique(currentTags[,.(ctidint, tagged)])
+      if(VERBOSE) print(currentTags)
+      if(VERBOSE) print("====================")
+      currentIntervals=unique(copy(intervals())[,ctidint:=paste(ctid, interval)][,.(ctid, interval, ctidint)])
+      iif(VERBOSE) print(currentIntervals)
+      intervalStatus=merge(currentIntervals, currentTags, by="ctidint", all.x=T)
+      intervalStatus[is.na(tagged),tagged:=F]
+      if(all(intervalStatus$tagged))
+        return(NULL)
+      else {
+        return(intervalStatus[tagged==F])
+      }
+    })
 
     observeEvent(input$generateRecordTableBttn, {
       recordTableReactive(makeRecordTable(intervals, tags, species, multispecies_tagging, imageRootOriginal))
@@ -120,7 +186,7 @@ makeRecordTableServer = function(id, intervals, tags, species, multispecies_tagg
 
     observe({
       if(is.null(recordTableReactive())){
-        print("disabling bttn")
+        if(VERBOSE) print("disabling bttn")
         shinyjs::hide("exportRecordTableBttn_bttn")
       }
       else 

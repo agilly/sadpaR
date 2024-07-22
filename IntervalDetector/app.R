@@ -788,7 +788,7 @@ output$CTInEditFrame=renderText({
   hideTab(inputId="tabs", target="Edit")
   hideTab(inputId="tabs", target="Tagging")
   hideTab(inputId="tabs", target="Retagging")
-  hideTab(inputId="tabs", target="RecordTable")
+  #hideTab(inputId="tabs", target="RecordTable")
   
   shinyjs::hide("saveButton")
 
@@ -957,24 +957,30 @@ output$CTInEditFrame=renderText({
   ############################# MAKE RECORD TABLE SECTION #############################
 
   # have an observer that enables the tab only if the tagging table is not empty, retag$tags and all the retag$status are complete
-  observe({
-    if(!is.null(currentTagging$internalTable)
-    && nrow(currentTagging$internalTable) 
-    && !is.null(retag()$tags) 
-    && !is.null(retag()$status)
-    && all(retag()$status$status=="complete")
-    ){
-      print("SHOWING TAB")
-      showTab(inputId="tabs", target="RecordTable")
-    }
-    else{
-      print("HIDING TAB")
-      hideTab(inputId="tabs", target="RecordTable")
-    }
-  })
+  # observe({
+  #   if(!is.null(currentTagging$internalTable)
+  #   && nrow(currentTagging$internalTable) 
+  #   && !is.null(retag()$tags) 
+  #   && !is.null(retag()$status)
+  #   && all(retag()$status$status=="complete")
+  #   ){
+  #     print("SHOWING TAB")
+  #     showTab(inputId="tabs", target="RecordTable")
+  #   }
+  #   else{
+  #     print("HIDING TAB")
+  #     hideTab(inputId="tabs", target="RecordTable")
+  #   }
+  # })
 
 
-  makeRecordTableServer("recordTableModule", intervals = loadedDataset$interval_data, tags=currentTagging$internalTable, species = loadedDataset$species_data, multispecies_tagging = retag()$tags, imageRootOriginal = loadedDataset$imagePath)
+  makeRecordTableServer("recordTableModule", 
+                        intervals = reactiveVal(loadedDataset$interval_data), 
+                        tags=reactiveVal(currentTagging$internalTable),
+                        species = reactiveVal(loadedDataset$species_data), 
+                        multispecies_tagging = reactiveVal(retag()$tags), 
+                        imageRootOriginal = reactiveVal(loadedDataset$imagePath),
+                        appLang = appLang)
 
   ############################# SETTINGS SECTION #############################
   observeEvent(input$languageSelection, {

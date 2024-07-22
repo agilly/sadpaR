@@ -99,6 +99,7 @@ English:
   exportRecordTableBttn: "Export record table"
   recordTabLabel: "Record Table"
   favouriteSpeciesTooltip: "Favourite species for fast tagging"
+  numUntaggedEventsLeftWarning: "events are still untagged. Please tag them before generating the record table."
 
 ລາວ:  
   appName  : "ໂປແກັມ ຈໍາແນກຂໍ້ມູນຈາກກ້ອງດັກຖ່າຍພາບສັດປ່າ"
