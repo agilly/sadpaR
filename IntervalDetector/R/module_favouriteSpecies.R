@@ -9,7 +9,7 @@ favouriteSpeciesUI = function(id) {
 }
 
 # Server function calling moduleServer
-favouriteSpeciesServer = function(id, input, output, session, species_df, favouriteSpeciesIds, currentTagging, ctidSelected, eventSelected) {
+favouriteSpeciesServer = function(id, input, output, session, species_df, favouriteSpeciesIds, currentTagging, taggingData) {
     # Server code goes here
     moduleServer(id, function(input, output, session) {
         ns = session$ns
@@ -24,7 +24,9 @@ favouriteSpeciesServer = function(id, input, output, session, species_df, favour
                     if(is.null(buttonObserverList[[paste0("favouriteSpeciesBttn_", i)]])) {
                         buttonObserverList[[paste0("favouriteSpeciesBttn_", i)]] = observeEvent(input[[paste0("favouriteSpeciesBttn_", i)]], {
                             print(paste("Button", i, "clicked"))
-                            addSpeciesById(currentTagging, species_df, i, ctidSelected(), eventSelected())
+                            ctidSelected = input$whichCT
+                            eventSelected = input$sequence
+                            addSpeciesById(currentTagging, species_df, i, ctidSelected, eventSelected)
                             print(currentTagging$displayTable)
                         })
                     }
@@ -39,13 +41,33 @@ favouriteSpeciesServer = function(id, input, output, session, species_df, favour
             )
         })
 
-  output$existingTags=renderDT({
-    if(!is.null(currentTagging$displayTable) & nrow(currentTagging$displayTable) & !(is.na(currentTagging$displayTable$group[1]))){
-      return(currentTagging$displayTable)
-    }else{
-      return(NULL)
-    }
-})
+    # observe({
+    #     cli::cli_inform("from within favouriteSpeciesServer, observer for currentTagging$displayTable")
+    #     print(currentTagging$displayTable)
+    # })
+
+    # # same but for taggingData
+    # observe({
+    #     cli::cli_inform("from within favouriteSpeciesServer, observer for taggingData")
+    #     print(taggingData())
+    # })
+
+#   output$existingTags=renderDT({
+#     if(!is.null(currentTagging$displayTable) & nrow(currentTagging$displayTable) & !(is.na(currentTagging$displayTable$group[1]))){
+#       return(currentTagging$displayTable)
+#     }else{
+#       return(NULL)
+#     }
+#     })
+
+    # replace above with taggingData
+    output$existingTags=renderDT({
+        if(!is.null(taggingData()) && nrow(taggingData()) && !(is.na(taggingData()$common_name[1]))){
+            return(taggingData())
+        }else{
+            return(NULL)
+        }
+    })
 
     })
     
@@ -82,6 +104,7 @@ addSpeciesById=function(currentTagging, speciesData, speciesId, ctidSelected, ev
         order=selectedSpecies$Order,
         Sex="unknown",
         Age="unknown")
+    if(VERBOSE) cli::cli_inform("Just before rbind 1 in addSpeciesById")
     if(isTaggedEmpty)
         currentTagging$displayTable=newDisplayRow
     else 
@@ -96,6 +119,7 @@ addSpeciesById=function(currentTagging, speciesData, speciesId, ctidSelected, ev
         indName="",
         Sex="unknown",
         Age="unknown")
+        if(VERBOSE) cli::cli_inform("Just before rbind 2 in addSpeciesById")
     currentTagging$internalTable=rbind(currentTagging$internalTable, newInternalRow)
     currentTagging$internalTable[ctid==ctidSelected & event==eventSelected, numInd:=nrow(selectedInternalTable)+1]
 }

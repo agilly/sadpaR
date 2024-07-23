@@ -102,19 +102,19 @@ checkSelectedFolder=function(session, input, output, rootDir, loadedDataset, cur
 }
 
 updateTaggingOnSeqChange=function(session, input, output, currentTagging, loadedDataset, selctid=input$tagCT, selevent=input$tagSequence){
-  print("Entered updateTaggingOnSeqChange")
-  print(currentTagging$internalTable)
-  print(glue("ctid={selctid}, event={selevent}"))
+  if(VERBOSE) print("Entered updateTaggingOnSeqChange")
+  if(VERBOSE) print(currentTagging$internalTable)
+  if(VERBOSE) print(glue("ctid={selctid}, event={selevent}"))
   currentInternalTable=currentTagging$internalTable[ctid==selctid & event==selevent]
-  print(currentInternalTable)
+  if(VERBOSE) print(currentInternalTable)
   dispTable=merge(currentInternalTable, loadedDataset$species_data, by.x="speciesID", by.y="id", all.x=T)
   dispTable=dispTable[ctid==selctid & event==selevent]
   dispTable[,c("ctid", "event", "numInd", "speciesID"):=NULL]
   setcolorder(dispTable, c("indID", "indName", "Common Name", "Lao Name", "Species Name", "Group", "Family", "Order", "Sex", "Age"))
   setnames(dispTable, c("id", "individual", "common_name", "lao_name", "scientific_name", "group", "family", "order", "Sex", "Age"))
-  print(currentTagging$displayTable)
+  if(VERBOSE) print(currentTagging$displayTable)
   currentTagging$displayTable=dispTable
-  print(currentTagging$displayTable)
+  if(VERBOSE) print(currentTagging$displayTable)
 }
 
 
@@ -160,7 +160,7 @@ loadDataset=function(session, input, output, rootDir, loadedDataset, currentTagg
   choices=unique(interval_data$ctid)
   #print(head(choices))
   print("loadDataset called")
-  if(VERBOSE) print("{length(choices)} camera traps found")
+  if(VERBOSE) print(glue("{length(choices)} camera traps found"))
   updateSelectInput(session, inputId = "whichCT", choices=choices, selected=choices[1])
   updateSelectInput(session, inputId = "whichCTSeq", choices=choices, selected=choices[1])
   updateSelectInput(session, inputId = "tagCT", choices=choices, selected=choices[1])

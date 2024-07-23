@@ -1,4 +1,4 @@
-VERBOSE=T
+#VERBOSE=F
 IMG_PER_PAGE=10
 retagMultiUI = function(id, appLang) {
   ns = NS(id)
@@ -111,17 +111,17 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
 
       if(is.null(dataToDisplay())){
         if(VERBOSE) print("DATA TO DISPLAY IS NULL - INIT")
-        print("DEBUG SAVED")
-        print(savedRetag$status[ctid=="T5-NK39 IE095" & interval==109])
-        print("DEBUG INCOMING")
-        print(merged_dt_incoming()[ctidint=="T5-NK39 IE095 109"])	
+        if(VERBOSE) print("DEBUG SAVED")
+        if(VERBOSE) print(savedRetag$status[ctid=="T5-NK39 IE095" & interval==109])
+        if(VERBOSE) print("DEBUG INCOMING")
+        if(VERBOSE) print(merged_dt_incoming()[ctidint=="T5-NK39 IE095 109"])	
         if(!is.null(savedRetag$status)){
           if(VERBOSE) print("SAVED RETAG STATUS EXISTS")
           if(VERBOSE) print(savedRetag$status)
           # if there are some events in merged_dt that are not in savedRetag, we need to add them
           if(VERBOSE) print("ADDING NEW EVENTS FROM INCOMING TO SAVED")
           newEvents=unique(merged_dt_incoming()[!(ctidint %in% savedRetag$status[,paste(ctid, interval)])][,.(ctid, interval)])
-          print(newEvents)
+          if(VERBOSE) print(newEvents)
           newEvents=data.table(ctid=newEvents$ctid, interval=newEvents$interval, status="wip")
           newEvents=rbind(savedRetag$status, newEvents)
           if(VERBOSE) print("STATUS AFTER ADDING NEW EVENTS")
@@ -129,7 +129,7 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
           # if there are events in saved that are not in incoming, this means events are no longer multispecies and need to be removed
           if(VERBOSE) print("REMOVING OLD EVENTS")
           removedEvents=unique(savedRetag$status[!(paste(ctid, interval) %in% merged_dt_incoming()$ctidint)][,.(ctid, interval)])
-          print(removedEvents)
+          if(VERBOSE) print(removedEvents)
           newEvents=newEvents[paste(ctid, interval) %in% merged_dt_incoming()$ctidint]
           eventsStatus(newEvents)
         }else{
@@ -168,12 +168,12 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
 
       if(!is.null(dataToDisplay())){
         if(VERBOSE) print("DATA TO DISPLAY IS NOT NULL")
-        print("DEBUG SAVED")
-        print(savedRetag$status[ctid=="T5-NK39 IE095" & interval==109])
-        print("DEBUG INCOMING")
-        print(merged_dt_incoming()[ctidint=="T5-NK39 IE095 109"])	
-        print("DEBUG RAM")
-        print(dataToDisplay()[ctidint=="T5-NK39 IE095 109"])
+        if(VERBOSE) print("DEBUG SAVED")
+        if(VERBOSE) print(savedRetag$status[ctid=="T5-NK39 IE095" & interval==109])
+        if(VERBOSE) print("DEBUG INCOMING")
+        if(VERBOSE) print(merged_dt_incoming()[ctidint=="T5-NK39 IE095 109"])	
+        if(VERBOSE) print("DEBUG RAM")
+        if(VERBOSE) print(dataToDisplay()[ctidint=="T5-NK39 IE095 109"])
         if(VERBOSE) print("EXISTING STATUS")
         if(VERBOSE) print(eventsStatus())
         if(VERBOSE) print("EXISTING TAGS")
@@ -193,7 +193,7 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
         if(VERBOSE) print("REMOVING OLD EVENTS")
 
         removedEvents=unique(newEvents[!(ctidint %in% merged_dt_incoming()$ctidint)][,.(ctid, interval)])
-        print(removedEvents)
+        if(VERBOSE) print(removedEvents)
         newEvents=newEvents[ctidint %in% merged_dt_incoming()$ctidint]
         if(VERBOSE) print(" STATUS AFTER REMOVING OLD EVENTS")
         if(VERBOSE) print(newEvents)
@@ -348,8 +348,8 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
   }
 
   observeEvent(input$markAttention, {
-    print("MARKEDATTENTION TRIGGERED")
-    print(VERBOSE)
+    if(VERBOSE) print("MARKEDATTENTION TRIGGERED")
+    if(VERBOSE) print(VERBOSE)
     if(VERBOSE) print("MARKEDATTENTION TRIGGERED")
     req(dataToDisplay())
     req(eventsStatus())

@@ -12,8 +12,6 @@ library(ini)
 library(yaml)
 library(imager)
 
-DEBUG=F
-VERBOSE=F
 #library(shinypop)
 #options(shiny.error = rlang::entrace)
 #rlang::global_entrace()
@@ -58,7 +56,7 @@ print(...)
 
 
 
-emptyTaggingTable=data.table(id=integer(), individual=character(),common_name=character(), lao_name=character(), scientific_name=character(), group=character(), family=character(), order=character(), sex=character(), age=character())
+emptyTaggingTable=data.table(id=integer(), individual=character(),common_name=character(), lao_name=character(), scientific_name=character(), group=character(), family=character(), order=character(), Sex=character(), Age=character())
 emptyInternalTaggingTable=data.table(ctid=character(0), event=integer(0), numInd=integer(0), indID=integer(0), speciesID=integer(0), indName=character(0), Sex=integer(0), Age=integer(0))
 
 
@@ -423,6 +421,8 @@ output$CTInEditFrame=renderText({
   # })
 
   taggingData <- reactive({
+    if(VERBOSE) cli::cli_inform("TAGGINGDATA REACTIVE CALLED")
+
     df <- currentTagging$displayTable
 
     # for (i in 1:nrow(df)) {
@@ -443,6 +443,8 @@ output$CTInEditFrame=renderText({
       if(nrow(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence])==1 
         && unique(currentTagging$internalTable[ctid==input$tagCT & event==input$tagSequence]$numInd)==0) ret=emptyTaggingTable else ret=df
     }
+    if(VERBOSE) cli::cli_inform("TAGGINGDATA REACTIVE RETURNING")
+    if(VERBOSE) print(ret)
     ret
   })
 
@@ -456,10 +458,10 @@ output$CTInEditFrame=renderText({
       df
       }
       , rownames=F, selection = "single"
-    )
     , options = list(autoWidth = TRUE, dom='t', paging = FALSE, ordering = FALSE), 
-    escape = FALSE, server = FALSE,
-  editable=list(target="column", disable=list(columns=c(0,2:10))), rownames=F#,callback = JS("table.rows().every(function(i, tab, row) {
+    escape = FALSE
+  )
+    #,callback = JS("table.rows().every(function(i, tab, row) {
       #   var $this = $(this.node());
       #   $this.attr('id', this.data()[0]);
       #   $this.addClass('shiny-input-container');
@@ -489,14 +491,18 @@ output$CTInEditFrame=renderText({
       # df        
       sortedSpeciesTable()
       }
+      , options = list(autoWidth = TRUE), filter = list(position = 'top'), rownames=F, selection="single"
       )
-    , options = list(autoWidth = TRUE), filter = list(position = 'top'), rownames=F, selection="single")
+    )
 
 
   observeEvent(input$addSpeciesButton, {
     isolate(table <- currentTagging$displayTable)
-    # print("currentTagging$displayTable")
-    # print(currentTagging$displayTable)
+    print("currentTagging$displayTable")
+    print(currentTagging$displayTable)
+    print("table")
+    print(table)
+    print(names(table))
     iselected=input$speciesSelector_rows_selected
     if(!is.null(iselected)){
       #selectedRow=loadedDataset$species_data[iselected]
@@ -510,30 +516,44 @@ output$CTInEditFrame=renderText({
       newRow=data.table(id=nextID, individual="", common_name=selectedRow[,`Common Name`],
       lao_name=selectedRow[,`Lao Name`], scientific_name=selectedRow[,`Species Name`], group=selectedRow$Group,
       family=selectedRow$Family, order=selectedRow$Order, Sex="Unknown", Age="Unknown")
-      # print("newRow")
-      # print(newRow)
+      print("newRow")
+      print(newRow)
 
       currentInternalTable=currentTagging$internalTable[ctid==input$whichCTSeq & event==input$tagSequence]
       isTaggedEmpty=nrow(currentInternalTable)==1 && unique(currentInternalTable$numInd)==0
-      # print("currentInternalTable")
-      # print(currentInternalTable[ctid==input$whichCTSeq & event==input$tagSequence])
+      print("currentInternalTable")
+      print(currentInternalTable[ctid==input$whichCTSeq & event==input$tagSequence])
       if(isTaggedEmpty){
         # print("isTaggedEmpty = TRUE")
         currentTagging$internalTable=currentTagging$internalTable[!(ctid==input$whichCTSeq & event==input$tagSequence)]
       }
-      #print("two")
+      print("two")
       #numInd must be updated all across
       addInternalTable=data.table(ctid=input$whichCTSeq, event=input$tagSequence, numInd=nrow(currentTagging$displayTable)+1, indID=newRow$id, speciesID=selectedRow$id, indName=newRow$individual, Sex=newRow$Sex, Age=newRow$Age)
       # print("addInternalTable")
       # print(addInternalTable)
-      #print("three")
+      print("three")
       currentTagging$internalTable=rbind(currentTagging$internalTable, addInternalTable)
       #print("four")
       currentTagging$internalTable[ctid==input$whichCTSeq & event==input$tagSequence, numInd:=nrow(currentTagging$displayTable)+1]
-      # print("five")
+      print("five")
       # this is needed here because of the triggers attached to displaytable
       if(isTaggedEmpty) currentTagging$displayTable=newRow else currentTagging$displayTable=rbind(table, newRow)
-      # print("six")
+      print("six")
+    }
+  })
+
+  # observe to maintain the display table in sync with the selected ct and event
+  observe({
+    if(VERBOSE) cli::cli_inform("OBSERVE DISPLAY TAGGING TABLE")
+    req(input$whichCTSeq)
+    req(input$sequence)
+    req(currentTagging$internalTable)
+    if(nrow(currentTagging$internalTable[ctid==input$whichCTSeq & event==input$sequence]) && max(currentTagging$internalTable[ctid==input$whichCTSeq & event==input$sequence]$numInd)>0){
+      currentTagging$displayTable=displayTableFromInternal(currentTagging$internalTable, input$whichCTSeq, input$sequence, loadedDataset$species_data)
+      
+    }else{
+      currentTagging$displayTable=emptyTaggingTable
     }
   })
 
@@ -627,7 +647,13 @@ output$CTInEditFrame=renderText({
     # print(glue("ctid: {selected_ctid}"))
     # print(glue("event: {selected_event}"))
     # print("haha")
-    if(length(idtoremove)!=length(idtoremove2) | length(idtoremove)<1){stop("problem with idtoremove")}
+    if(length(idtoremove)!=length(idtoremove2) | length(idtoremove)<1){
+      cli::cli_inform("idtoremove={idtoremove}, idtoremove2={idtoremove2}, ctid={selected_ctid}, event={selected_event}, currentTagging$displayTable:")
+      print(currentTagging$displayTable)
+      cli::cli_inform("currentTagging$internalTable (subset):")
+      print(currentTagging$internalTable[ctid==selected_ctid & event==selected_event])
+      stop("problem with idtoremove")
+      }
     currentTagging$internalTable=currentTagging$internalTable[-idtoremove2]
     if(!is.null(iselected)){
       currentTagging$displayTable=currentTagging$displayTable[-iselected]
@@ -826,12 +852,13 @@ output$CTInEditFrame=renderText({
     numTags=nrow(currentTagging$internalTable[ctid==ctidSel & event==interval])
     if(numTags==0){
       # sequence previously untagged
+      if(VERBOSE) cli::cli_inform("Just before rbind in emptySequenceButton")
       currentTagging$internalTable=rbind(currentTagging$internalTable, createEmptyTaggingRow(ctidSel, interval))
     }else{
       # sequence previously tagged, delete rows and replace with empty df
       # print(1)
       currentTagging$internalTable=currentTagging$internalTable[!(ctid==ctidSel & event==interval)]
-      # print(2)
+      if(VERBOSE) cli::cli_inform("Just before rbind 2 in emptySequenceButton")
       currentTagging$internalTable=rbind(currentTagging$internalTable, createEmptyTaggingRow(ctidSel, interval))
       # print(3)
       newRow=data.table(id=0, individual="", common_name=NA,
@@ -902,7 +929,12 @@ output$CTInEditFrame=renderText({
 
   favouriteSpecies=reactiveVal()
 
-  favouriteSpeciesServer("favouriteSpeciesModule", input, output, session, loadedDataset$species_data, favouriteSpecies, currentTagging, reactiveVal(input$whichCT), reactiveVal(input$sequence))
+  favouriteSpeciesServer("favouriteSpeciesModule", input, output, session, loadedDataset$species_data, favouriteSpecies, currentTagging, taggingData)
+
+  # observe({
+  #   cli::cli_inform("OBSERVE CALLED from main app, displaying currentTagging$displayTable")
+  #   print(currentTagging$displayTable)
+  # })
 
   ############################# MULTISPECIES TAGGING SECTION #############################
   observe({
@@ -973,10 +1005,16 @@ output$CTInEditFrame=renderText({
   #   }
   # })
 
+  reactiveTagsForRecordTable=reactiveVal()
+  observe({
+    if(!is.null(currentTagging$internalTable) && nrow(currentTagging$internalTable)){
+      reactiveTagsForRecordTable(currentTagging$internalTable)
+    }
+  })
 
   makeRecordTableServer("recordTableModule", 
                         intervals = reactiveVal(loadedDataset$interval_data), 
-                        tags=reactiveVal(currentTagging$internalTable),
+                        tags=reactiveTagsForRecordTable,
                         species = reactiveVal(loadedDataset$species_data), 
                         multispecies_tagging = reactiveVal(retag()$tags), 
                         imageRootOriginal = reactiveVal(loadedDataset$imagePath),

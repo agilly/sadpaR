@@ -1,4 +1,4 @@
-VERBOSE=T
+#VERBOSE=T
 retagMultiUI = function(id, appLang) {
   ns = NS(id)
   tagList(

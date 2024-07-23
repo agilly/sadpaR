@@ -49,22 +49,23 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
 
   observeEvent(input$tagCT, {
     iselected=input$tagCT
+    if(VERBOSE) cli::cli_inform("tagCT observe called: {iselected}, {input$whichCT} ,{input$whichCTSeq}")
     if(iselected!=""){
       choices=unique((loadedDataset$interval_data)[ctid==iselected]$interval)
       updateSelectInput(session, inputId="tagSequence", choices=choices)
       updateSelectInput(session, inputId="ChooseEdit", choices=choices, selected=choices[1])
     }
     if(iselected!=input$whichCT){
-      updateSelectInput(session, inputId="whichCT", selected=input$whichCTSeq)
+      updateSelectInput(session, inputId="whichCT", selected=iselected)
     }
-    if(iselected!=input$tagCT){
-      updateSelectInput(session, inputId="whichCTSeq", selected=input$whichCTSeq)
+    if(iselected!=input$whichCTSeq){
+      updateSelectInput(session, inputId="whichCTSeq", selected=iselected)
     }
   })
 
   observeEvent(input$sequence, {
     iselected=input$sequence
-    print("sequence observe called")
+    if(VERBOSE) print("sequence observe called")
     #print(paste("sequence is ", iselected, ", tagsequence is", input$tagSequence))
     #print(paste("currently selected", input$tabs))
     if(input$tagSequence!=iselected & input$tabs=="Sequence"){

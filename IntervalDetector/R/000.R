@@ -1,0 +1,2 @@
+VERBOSE=F
+DEBUG=F
