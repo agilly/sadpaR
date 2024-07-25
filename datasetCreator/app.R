@@ -15,67 +15,15 @@ library(shinydisconnect)
 
 Sys.setenv(TZ="America/New_York")
 options(tz="America/New_York")
-# css = "
-# .container-fluid {
-#   max-width: 700px;
-#   padding: 0 20px;
-# }
-# .shinyglide {
-#   border: 1px solid #888;
-#   box-shadow: 0px 0px 20px #888;
-# }
-# .my-control {
-#   display: block;
-#   position: absolute;
-#   top: 50%;
-#   transform: translateY(-50%);
-#   line-height: 1;
-#   font-size: 2.5em;
-#   color: #0055DD;
-#   opacity: 0.8;
-#   cursor: pointer;
-# }
-# .my-control:hover {
-#   opacity: 1;
-# }
-# .disabled {
-#   opacity: 0.3;
-#   cursor: not-allowed;
-# }
-# .prev-screen {
-#   left: 20px;
-# }
-# .next-screen,
-# .last-screen {
-#   right: 20px;
-# }
-# .glide__slides {
-#   margin: 0 7em;
-# }
 
-# @keyframes hourglass {
-#   from {
-#     transform: translateY(-50%) rotate(0deg);
-#   }
-#   50% {
-#     transform: translateY(-50%) rotate(359deg);
-#   }
-#   to {
-#     transform: translateY(-50%) rotate(360deg);
-#   }
-# }
-# .loading {
-#   font-size: 2em;
-#   animation: hourglass 1s linear infinite;
-# }
-# "
+appLang=config::get(file="lang.yml", config=ini::read.ini("../sadpar.ini")$app_config$language)
 
 createIntervals=function(dateTimeDF, baseDir, outDir, intervalDuration=30){
 
     # first we identify location and ct
     #datetime[,c("location", "ct"):=tstrsplit(sub("^/+", "", sub(base, "", fn)), "/")[1:2]]
     # start spinner
-    show_modal_spinner(text="Creating intervals...")
+    show_modal_spinner(text=appLang$dcCreatingIntervalSpinner)
     print(glue("baseDir: {baseDir}, outDir: {outDir}"))
     baseDirPlatformIndependent=paste0(gsub("[/\\\\]+", "\\[\\/\\\\\\\\\\]", baseDir), "[/\\\\]")
     dateTimeDF[,c("location", "ct"):=tstrsplit(sub(baseDirPlatformIndependent, "", fn), "[/\\\\]")[1:2]]
@@ -114,8 +62,8 @@ createIntervals=function(dateTimeDF, baseDir, outDir, intervalDuration=30){
     # stop spinner
     remove_modal_spinner()
     sendSweetAlert(
-        title = "Intervals created",
-        text = glue("{nrow(unique(dateTimeDF[,.(location, ct, interval)]))} intervals have been processed."),
+        title = appLang$dcIntervalsCreatedTitle,
+        text = glue(appLang$dcIntervalsCreatedText),
         type = "success"
     )
 
@@ -131,7 +79,7 @@ analyzeDirectory=function(dirPath){
     
     # error if it doesn't exist
     if(!dir.exists(dirPath)){
-        return(list(message=glue("Directory {dirPath} does not exist."), value=F))
+        return(list(message=glue(appLang$dcAnalyzeDirPathNotExist), value=F))
     }
 
     # # error if the directory doesn't only contain directories
@@ -148,7 +96,7 @@ analyzeDirectory=function(dirPath){
     slashes=nchar(subdirs)-nchar(gsub("[/\\\\]", "", subdirs))
     # if the max number of slashes is not 1, return F
     if(max(slashes)!=1){
-        return(list(message=glue("Directory {dirPath} does not have 2 levels of directories: {paste(subdirs[slashes>1], collapse=', ')}"), value=F))
+        return(list(message=glue(appLang$dcAnalyzeDirPathNotTwoLevels), value=F))
     }
 
     # check if the second level only contains jpg or jpeg files
@@ -156,7 +104,7 @@ analyzeDirectory=function(dirPath){
     filesRecursiveWithoutDirs=getFilesRecursiveWithoutDirs(dirPath)
     if(!all(grepl(".*\\.(jpg|jpeg)$", filesRecursiveWithoutDirs, ignore.case = T))){
       filesNotJpeg=filesRecursiveWithoutDirs[!grepl(".*\\.(jpg|jpeg)$", filesRecursiveWithoutDirs, ignore.case = T)]
-        return(list(message=glue("Directory {dirPath} contains files that are not jpg or jpeg: {paste(filesNotJpeg, collapse=', ')}"), value=F))
+        return(list(message=glue(appLang$dcAnalyzeDirPathNotJpeg), value=F))
     }
     return(list(value=T, dirs=subdirs, files=filesRecursiveWithoutDirs))
 }
@@ -225,40 +173,39 @@ countFilesPerCam=function(filesRecursiveWithoutDirs){
     glide(
       custom_controls = modal_controls,
       screen(
-        next_label = 'Next <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>',
+        next_label = glue('{appLang$dcNextButton} <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>'),
         next_condition = 'input.datasetName != ""',
-        h3("Dataset Properties"),
-        p("Please input basic data about your dataset."),
-        shiny::textInput("landscape", "Landscape"),
-        shiny::textInput("block", "Block"),
-        shiny::textInput("code", "Code"),
-        shiny::textInput("season", "Season"),
-        textInput("datasetName", HTML("Dataset name <font color='red'>*</font> <small><i>(required field)</i></small>"), "myDataset")
-
+        h3(appLang$dcDatasetProperties),
+        p(appLang$dcDatasetPropertiesText),
+        shiny::textInput("landscape", appLang$dcLandscapeLabel),
+        shiny::textInput("block", appLang$dcBlockLabel),
+        shiny::textInput("code", appLang$dcCodeLabel),
+        shiny::textInput("season", appLang$dcSeasonLabel),
+        textInput("datasetName", HTML(glue('{appLang$dcDatasetNameLabel} <font color="red">*</font> <small><i>({appLang$dcRequiredFieldText})</i></small>')), "myDataset")
       ),
       screen(
-        next_condition = 'input.loadedDir != ""',
-        h3("Input Directory"),
-        p("Select an input directory. The following checks will be performed:"),
-        tags$ul(
-          tags$li("The directory must exist."),
-          tags$li("It must only contain directories."),
-          tags$li("It must have only 2 levels: subdirectories with stations and sub-subdirectories with camera traps."),
-          tags$li("Each camera trap directory must only contain *.jpg or *.jpeg files.")
-        ),hr(),br(),
-        fluidRow(
-          column(12,
-            div(class = "input-group align-items-center", 
-              div(class = "input-group-prepend",
-                shinyDirButton("loadDir", "Load directory", "Load a directory", class = "btn btn-secondary", multiple = F)
+              next_condition = 'input.loadedDir != ""',
+              h3(appLang$dcInputDirectoryTitle),
+              p(appLang$dcInputDirectoryDescription),
+              tags$ul(
+                tags$li(appLang$dcInputDirectoryCheck1),
+                tags$li(appLang$dcInputDirectoryCheck2),
+                tags$li(appLang$dcInputDirectoryCheck3),
+                tags$li(appLang$dcInputDirectoryCheck4)
+              ),hr(),br(),
+              fluidRow(
+                column(12,
+                  div(class = "input-group align-items-center", 
+                    div(class = "input-group-prepend",
+                      shinyDirButton("loadDir", appLang$dcLoadDirectoryButton, appLang$dcLoadDirectoryTooltip, class = "btn btn-secondary", multiple = F)
+                    ),
+                    div(style = "width: 10px;"),  # spacer
+                    div(style = "display: inline-block; vertical-align: middle;",
+                      textInput("loadedDirPathTextInput", "", value = "")
+                    )
+                  )
+                )
               ),
-              div(style = "width: 10px;"),  # spacer
-              div(style = "display: inline-block; vertical-align: middle;",
-                textInput("loadedDirPathTextInput", "", value = "")
-              )
-            )
-          )
-        ),
         uiOutput("analyzeButtonUI"),
         #shinycssloaders::withSpinner(
           DTOutput("CTtable")
@@ -267,14 +214,14 @@ countFilesPerCam=function(filesRecursiveWithoutDirs){
         br()      ),
       screen(
         next_condition = 'input.timestampsLoaded != ""',
-        h3("Output Directory"),
-        p("Select the directory in which you would like to create the dataset."),
-        p("Please note that the dataset directory will be named after the dataset name, and placed in the selected directory."),
+        h3(appLang$dcOutputDirectoryTitle),
+        p(appLang$dcOutputDirectoryDescription),
+        p(appLang$dcOutputDirectoryNote),
         fluidRow(
           column(12, 
             div(class = "input-group align-items-center", 
               div(class = "input-group-prepend",
-                shinyDirButton("outputDir", "Output directory", "Select output directory", class = "btn btn-secondary", multiple = F)
+                shinyDirButton("outputDir", appLang$dcOutputDirectoryButton, appLang$dcOutputDirectoryTooltip, class = "btn btn-secondary", multiple = F)
               ),
               div(style = "width: 10px;"),  # spacer
               div(style = "display: inline-block; vertical-align: middle;",
@@ -286,9 +233,9 @@ countFilesPerCam=function(filesRecursiveWithoutDirs){
         # hidden text saying the next step is to extract timestamps, and a hidden button to do so
         hidden(
           div(id="extractTimestampsDiv",
-          h3("Timestamps"),
-            p("The next step is to extract timestamps from the images."),
-            actionBttn("extractTimestamps", "Extract timestamps")
+          h3(appLang$dcTimestampsTitle),
+            p(appLang$dcTimestampsDescription),
+            actionBttn("extractTimestamps", appLang$dcExtractTimestampsButton)
           )
         ),
         br(),
@@ -298,21 +245,20 @@ countFilesPerCam=function(filesRecursiveWithoutDirs){
             timeRangeUI("timeRange")
           )
         )
-
       ),
       # a screen with shinyFiles buttons to upload a species.csv file and a stations.csv
       screen(
         next_condition = 'input.datasetComplete != ""',
-        h3("Species and Stations"),
-        p("Please upload the species.csv and stations.csv files."),
-        p("The species.csv file should contain the species names and their tags."),
-        p("The stations.csv file should contain three columns: 'Station', 'X' and 'Y', the latter two being latitude and longitude, respectively."),
-        p("The ct.csv and metadata.csv will also be written here, completing the metadata directory."),
+        h3(appLang$dcSpeciesStationsTitle),
+        p(appLang$dcSpeciesStationsDescription),
+        p(appLang$dcSpeciesFileDescription),
+        p(appLang$dcStationsFileDescription),
+        p(appLang$dcMetadataCompletionNote),
         fluidRow(
           column(12,
             div(class = "input-group align-items-center", 
               div(class = "input-group-prepend",
-                shinyFilesButton("speciesFile", "Species file", "Upload species file", accept = ".csv", multiple = F)
+                shinyFilesButton("speciesFile", appLang$dcSpeciesFileButton, appLang$dcSpeciesFileTooltip, accept = ".csv", multiple = F)
               ),
               div(style = "width: 10px;"),  # spacer
               div(style = "display: inline-block; vertical-align: middle;",
@@ -323,7 +269,7 @@ countFilesPerCam=function(filesRecursiveWithoutDirs){
           column(12,
             div(class = "input-group align-items-center", 
               div(class = "input-group-prepend",
-                shinyFilesButton("stationsFile", "Stations file", "Upload stations file", accept = ".csv", multiple = F)
+                shinyFilesButton("stationsFile", appLang$dcStationsFileButton, appLang$dcStationsFileTooltip, accept = ".csv", multiple = F)
               ),
               div(style = "width: 10px;"),  # spacer
               div(style = "display: inline-block; vertical-align: middle;",
@@ -334,27 +280,25 @@ countFilesPerCam=function(filesRecursiveWithoutDirs){
         ),
         hr(),
         br(),
-        actionBttn("uploadFiles", "Upload files")
+        actionBttn("uploadFiles", appLang$dcUploadFilesButton)
       ),
       screen(
         next_condition = 'input.sequencesMade != ""',
-        h3("Intervals"),
-        p("The next step is to create intervals from the timestamps. This is a quick process."),
-        actionBttn("createIntervals", "Create intervals"),
+        h3(appLang$dcIntervalsTitle),
+        p(appLang$dcIntervalsDescription),
+        actionBttn("createIntervals", appLang$dcCreateIntervalsButton),
         br(),
         hr(),
         hidden(div(id="makeSequencesDiv",
-          h3("Sequences"),
-          p("The next step is to create sequences from the intervals. This can take hours."),
-          p("Please do not close this window, and do not let your computer go to sleep."),
-          p("We recommend the Caffeine apps and extensions to keep your computer awake."),
-          actionBttn("makeSequences", "Make sequences")
+          h3(appLang$dcSequencesTitle),
+          p(appLang$dcSequencesDescription),
+          p(appLang$dcSequencesWarning1),
+          p(appLang$dcSequencesWarning2),
+          actionBttn("makeSequences", appLang$dcMakeSequencesButton)
         ))
       )
     )
     )
-
-
 
 ui = page_fluid(
   theme = bs_add_rules(bs_theme(), 
@@ -366,7 +310,7 @@ ui = page_fluid(
         }"
       )
   ,
-  title="Dataset creator",
+  title=appLang$dcTitle,
   useShinyjs(),
   shinydisconnect::disconnectMessage(overlayOpacity = 0.9),
   card(
@@ -426,14 +370,14 @@ getRootsInSystem=function(){
         userSelectedDir(selectedPath)
     })
 
-    observeEvent(userSelectedDir(), {
+  observeEvent(userSelectedDir(), {
         req(userSelectedDir())
         # display an actionbttn to analyze the directory
         output$analyzeButtonUI=renderUI({
           # add some information that the dir now needs to be analyzed
           div(
-          p("The directory has been selected. Please click the button below to analyze it."),
-            actionBttn("analyzeDir", "Analyze directory")
+          p(appLang$dcDirectorySelectedNotice),
+            actionBttn("analyzeDir", appLang$dcAnalyzeDirectoryButton)
           )
         })
 
@@ -443,7 +387,7 @@ getRootsInSystem=function(){
     observeEvent(input$analyzeDir, {
         chosenDir=input$loadDir
         if("path" %in% names(chosenDir)) {
-            show_modal_spinner(text="Analyzing directory")
+            show_modal_spinner(text=appLang$dcAnalyzingDirectory)
             roots=getRootsInSystem()
             print(roots)
             thisRoot=roots[chosenDir$root]
@@ -464,11 +408,13 @@ getRootsInSystem=function(){
                 loadedFiles(directoryIsValid$files)
                 remove_modal_spinner()
                 # activate the next button by setting the input
-                shinyjs::runjs(glue('Shiny.setInputValue("loadedDir", "{selectedPath}")')) 
+                shinyjs::runjs(glue('Shiny.setInputValue("loadedDir", "{selectedPath}")'))
+                CTtableColnames=c("ct", "count")
+                setNames(CTtableColnames, c(appLang$dcCameraTrapColumnName, appLang$dcNumberOfImagesColumnName))
                 output$CTtable=DT::renderDT({
                     datatable(
                     as.data.table(countFilesPerCam(loadedFiles()))
-                    , colnames=c("Camera Trap"="ct", "Number of Images"="count"),
+                    , colnames=CTtableColnames,
                     rownames=F,
                     options=list(searching=F, ordering=F)
                     )
@@ -484,7 +430,7 @@ getRootsInSystem=function(){
                 print("Validation KO")
                 remove_modal_spinner()
                 sendSweetAlert(
-                    title = "Error",
+                    title = appLang$dcError,
                     text = directoryIsValid$message,
                     type = "error"
                 )
@@ -515,7 +461,7 @@ getRootsInSystem=function(){
                     dir.create(outputDirReactive())
                 }, error=function(e){
                     sendSweetAlert(
-                        title = "Error",
+                        title = appLang$dcError,
                         text = glue("Error creating output directory: {e$message}"),
                         type = "error"
                     )
@@ -607,28 +553,40 @@ getRootsInSystem=function(){
             percentIncrement=round(length(imagesToProcess)/100)
             print("percentIncrement")
             print(percentIncrement)
+            missingDateFiles=c()
             for(i in 1:length(imagesToProcess)){
                 if(i %% percentIncrement == 0){
                     updateProgressBar(id="myprogress", value = round(100*i/length(imagesToProcess)))
                     removeUI(selector = "#mytext p", immediate = TRUE)
                     insertUI(selector = "#mytext", ui=tags$p(glue("Processed {i} images of {length(imagesToProcess)}")), immediate = TRUE)
                 }
+                #cli::cli_inform("Analyzing image {imagesToProcess[i]}")
                 this_date=tryCatch({
                     date=read_exif_tags(imagesToProcess[i])$DateTime
                 }, error=function(e) {print(e$message); return(NA)})
-                datetime=rbind(datetime, data.table(fn=imagesToProcess[i], date=this_date))
+                if(is.null(this_date))
+                    missingDateFiles=c(missingDateFiles, imagesToProcess[i])
+                else
+                  datetime=rbind(datetime, data.table(fn=imagesToProcess[i], date=this_date))
             }
             fwrite(datetime, file.path(outputDirReactive(), "datetime.csv.gz"))
             # build location and ct
             datetime[,location:=basename(dirname(dirname(fn)))]
             datetime[,ct:=basename(dirname(fn))]
             dateTimeDF(datetime)
-            sendSweetAlert(
-                title = "Timestamps extracted",
-                text = "Timestamps have been extracted and saved to datetime.csv.gz",
-                type = "success"
-            )
-
+            if(length(missingDateFiles)){
+                sendSweetAlert(
+                    title = "Warning",
+                    text = glue("Timestamps were successfully extracted, but {length(missingDateFiles)} files did not have a DateTime field, here are the first 10: {paste(head(missingDateFiles, 10), collapse=', ')}"),
+                    type = "warning"
+                )
+            }else{
+              sendSweetAlert(
+                  title = "Timestamps extracted",
+                  text = "Timestamps have been extracted and saved to datetime.csv.gz",
+                  type = "success"
+              )
+            }
         }
     })
 

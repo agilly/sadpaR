@@ -20,7 +20,7 @@ library(imager)
 options(shiny.maxRequestSize=100*1024^2)
 
 ## LANGUAGE SETTINGS
-appLang=config::get(file="lang.yml", config=read.ini("sadpar.ini")$app_config$language)
+appLang=config::get(file="lang.yml", config=ini::read.ini("sadpar.ini")$app_config$language)
 
 # options(error = function() {
 #   calls <- sys.calls()
