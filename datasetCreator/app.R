@@ -577,7 +577,7 @@ getRootsInSystem=function(){
             if(length(missingDateFiles)){
                 sendSweetAlert(
                     title = "Warning",
-                    text = glue("Timestamps were successfully extracted, but {length(missingDateFiles)} files did not have a DateTime field, here are the first 10: {paste(head(missingDateFiles, 10), collapse=', ')}"),
+                    text = glue("Timestamps were successfully extracted, but {length(missingDateFiles)} files did not have a DateTime field and will be ignored from the dataset, here are the first 10: {paste(head(missingDateFiles, 10), collapse=', ')}"),
                     type = "warning"
                 )
             }else{
