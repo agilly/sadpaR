@@ -75,8 +75,8 @@ createSingleSequence = function(this_interval, intervals_loc_ct, tempDir, loc_ct
         if(!is.null(session))
             sendSweetAlert(
                 session = session,
-                title = "Error",
-                text = "Error creating sequence",
+                title = appLang$dcError,
+                text = appLang$errorCreatingSequence,
                 type = "error"
             )
         else
@@ -112,6 +112,7 @@ createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=10
     totalNumberOfSequences=nrow(unique(intervals[,.(location, ct, interval)]))
     if(verbose) cli::cli_inform("Total number of sequences: {totalNumberOfSequences}")
     numberOfSequencesNeededToIncreaseByOnePercent=round(totalNumberOfSequences/100)
+    X="" # needed for the glue interpolation in progress bar
     if(!is.null(session)){
         sendSweetAlert(
             session = session,
@@ -120,13 +121,13 @@ createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=10
             text = tags$div(
             progressBar(
                 id = "progressSequences",
-                title = "Generating sequence GIFs...",
+                title = appLang$dcGeneratingSequencesMessage,
                 display_pct = TRUE, 
                 value = 0
             ),
             tags$div(
                 id = "progressText", 
-                tags$p(glue::glue("0/{totalNumberOfSequences} sequences generated"))
+                tags$p(glue::glue("0/{totalNumberOfSequences} appLang$dcSequencesGenerated"))
             )
             ),
             closeOnClickOutside = FALSE,
@@ -157,13 +158,13 @@ createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=10
                     updateProgressBar(
                         session = session,
                         id = "progressSequences",
-                        title = "Generating sequence GIFs...",
+                        title = appLang$dcGeneratingSequencesMessage,
                         value = done_intervals/totalNumberOfSequences*100
                     )
                 removeUI("#progressText p", immediate = TRUE)
                 insertUI(
                     selector = "#progressText",
-                    ui = tags$p(glue::glue("{done_intervals}/{totalNumberOfSequences} sequences generated")),
+                    ui = tags$p(glue::glue("{done_intervals}/{totalNumberOfSequences} {appLang$dcSequencesGenerated}")),
                     immediate = TRUE
                 )
             }
@@ -173,8 +174,8 @@ createSequences=function(intervalFile, outputDir, maxImagesBeforeDownsampling=10
     if(!is.null(session))
         sendSweetAlert(
             session = session,
-            title = "Success",
-            text = "All sequences have been generated",
+            title = appLang$dcSuccess,
+            text = appLang$dcAllSequencesGenerated,
             type = "success"
         )
 }

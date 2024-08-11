@@ -19,8 +19,6 @@ library(imager)
 #required to allow up to 100M load
 options(shiny.maxRequestSize=100*1024^2)
 
-## LANGUAGE SETTINGS
-appLang=config::get(file="lang.yml", config=ini::read.ini("sadpar.ini")$app_config$language)
 
 # options(error = function() {
 #   calls <- sys.calls()
@@ -1016,7 +1014,7 @@ output$CTInEditFrame=renderText({
                         intervals = reactiveVal(loadedDataset$interval_data), 
                         tags=reactiveTagsForRecordTable,
                         species = reactiveVal(loadedDataset$species_data), 
-                        multispecies_tagging = reactiveVal(retag()$tags), 
+                        multispecies_tagging = retag, 
                         imageRootOriginal = reactiveVal(loadedDataset$imagePath),
                         appLang = appLang)
 

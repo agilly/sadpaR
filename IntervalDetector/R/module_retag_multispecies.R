@@ -103,7 +103,8 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
       if(VERBOSE) print(merged_dt_incoming())
       if(VERBOSE) print("================================")
       if(VERBOSE) print(savedRetag$status)
-
+      if(VERBOSE) print("================================")
+      if(VERBOSE) print(savedRetag$tags)
       # this observer handles changes in the incoming data
       # this is changed only if the user has changed the tagging
       # savedRetag is the state that was loaded from the saved data
@@ -139,9 +140,12 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
         if(VERBOSE) print("SAVED RETAG TAGS")
         if(VERBOSE) print(savedRetag$tags)
         if(is.null(savedRetag$tags)) {
+          if(VERBOSE) print("SAVED RETAG TAGS IS NULL")
           userSelections(data.frame(fn = character(), species = character(), stringsAsFactors = FALSE))
         }
         else {
+          if(VERBOSE) print("SAVED RETAG TAGS ASSIGNING")
+          if(VERBOSE) print(savedRetag$tags)
           userSelections(savedRetag$tags)
         } 
         dataToDisplay(merged_dt_incoming())
@@ -150,11 +154,25 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
         # if there are some species in saved tags that are not in the incoming data, we need to remove them
         if(VERBOSE) print("Current species list by ctidint")
         existingTags=copy(userSelections())
-        new_allowed_species=merged_dt_incoming()[,unlist(paste(fn,species)), by=fn]$V1
+        print(merged_dt_incoming())
+        fwrite(merged_dt_incoming(), "/mnt/t/merged_dt_incoming.csv")
+        #new_allowed_species=merged_dt_incoming()[,paste(fn,unlist(species))]
+        new_allowed_species=copy(merged_dt_incoming())[, .(species = unlist(species)), by = setdiff(names(merged_dt_incoming()), "species")]
+        new_allowed_species=new_allowed_species[,paste(fn, species)]
+        if(VERBOSE) cli::cli_inform("NEW ALLOWED SPECIES:")
+        if(VERBOSE) print(head(new_allowed_species))
+        if(VERBOSE) fwrite(data.table(lol=new_allowed_species), "/mnt/t/new_allowed_species.csv")
         existingTags[,fnspecies:=paste(fn, species)]
+        if(VERBOSE) cli::cli_inform("10 first EXISTING SPECIES: {paste(head(existingTags[,unique(fnspecies)]), collapse=', ')}")
         newTags=existingTags[fnspecies %in% new_allowed_species]
-        if(VERBOSE && nrow(existingTags) != nrow(newTags)) print(glue("REMOVED {nrow(existingTags) - nrow(newTags)} species from userSelections"))
+        if(VERBOSE && nrow(existingTags) != nrow(newTags)) print(glue("REMOVED {nrow(existingTags) - nrow(newTags)} out of {nrow(existingTags)} species from userSelections"))
+        if(VERBOSE && nrow(existingTags) != nrow(newTags)) {
+          cli::cli_inform("10 random examples of REMOVED SPECIES:")
+          print(existingTags[!(fnspecies %in% new_allowed_species)][sample(1:nrow(existingTags), 10),])
+        }
         newTags[,fnspecies:=NULL]
+        if(VERBOSE) print("NEW TAGS")
+        if(VERBOSE) print(newTags)
         userSelections(newTags)
 
         return()
@@ -204,8 +222,13 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
 
         # if there are some species in userSelections that are not in the incoming data, we need to remove them
         if(VERBOSE) print("Current species list by ctidint")
+        if(VERBOSE) print(userSelections())
         existingTags=copy(userSelections())
-        new_allowed_species=merged_dt_incoming()[,unlist(paste(fn,species)), by=fn]$V1
+        #new_allowed_species=merged_dt_incoming()[,paste(unlist(fn,species))]
+        new_allowed_species=copy(merged_dt_incoming())[, .(species = unlist(species)), by = setdiff(names(merged_dt_incoming()), "species")]
+        new_allowed_species=new_allowed_species[,paste(fn, species)]
+        if(VERBOSE) print("NEW ALLOWED SPECIES:")
+        if(VERBOSE) print(new_allowed_species)
         existingTags[,fnspecies:=paste(fn, species)]
         newTags=existingTags[fnspecies %in% new_allowed_species]
         if(VERBOSE && nrow(existingTags) != nrow(newTags)) print(glue("REMOVED {nrow(existingTags) - nrow(newTags)} species from userSelections"))
@@ -622,7 +645,13 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
     if(nrow(tbl)) tbl else NULL
     })
 
-  return(reactive(list(tags=userSelections(), status=eventsStatus())))
+  observe({
+    if(VERBOSE) print("OBSERVE REFRESH CALLED")
+    if(VERBOSE) print("EVENTS TAGS")
+    if(VERBOSE) print(userSelections())
+  })
+
+  return(reactive(list(tags=userSelections, status=eventsStatus)))
   })
 }
 

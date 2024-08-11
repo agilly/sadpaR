@@ -16,8 +16,6 @@ library(shinydisconnect)
 Sys.setenv(TZ="America/New_York")
 options(tz="America/New_York")
 
-appLang=config::get(file="lang.yml", config=ini::read.ini("../sadpar.ini")$app_config$language)
-
 createIntervals=function(dateTimeDF, baseDir, outDir, intervalDuration=30){
 
     # first we identify location and ct
@@ -462,7 +460,7 @@ getRootsInSystem=function(){
                 }, error=function(e){
                     sendSweetAlert(
                         title = appLang$dcError,
-                        text = glue("Error creating output directory: {e$message}"),
+                        text = glue(appLang$dcErrorCreatingOutputDirectory),
                         type = "error"
                     )
                     return()
@@ -488,8 +486,8 @@ getRootsInSystem=function(){
 
         shinyWidgets::confirmSweetAlert(
             inputId = "overwriteDatetime",
-            title = "File exists",
-            text = "A datetime.csv.gz file already exists in the output directory. Do you want to overwrite it?",
+            title = appLang$dcDatetimeFileExistsTitle,
+            text = appLang$dcDatetimeFileExistsText,
             type = "warning",
             showCancelButton = TRUE,
             btn_labels = c("Reuse", "Overwrite"),
@@ -530,7 +528,7 @@ getRootsInSystem=function(){
                 text = tags$div(
                     progressBar(
                     id = "myprogress",
-                    title = glue("Processing {length(imagesToProcess)} images"),
+                    title = glue(appLang$dcProcessingImagesTitle),
                     display_pct = TRUE, 
                     value = 0
                     ),
@@ -548,45 +546,45 @@ getRootsInSystem=function(){
             # save the dateTimeDF to a datetime.csv.gz file in the output directory
             # remove the modal
 
-            datetime=data.table()
-            # number of images required to increment the progress bar by 1 percent
-            percentIncrement=round(length(imagesToProcess)/100)
-            print("percentIncrement")
-            print(percentIncrement)
-            missingDateFiles=c()
-            for(i in 1:length(imagesToProcess)){
-                if(i %% percentIncrement == 0){
-                    updateProgressBar(id="myprogress", value = round(100*i/length(imagesToProcess)))
-                    removeUI(selector = "#mytext p", immediate = TRUE)
-                    insertUI(selector = "#mytext", ui=tags$p(glue("Processed {i} images of {length(imagesToProcess)}")), immediate = TRUE)
-                }
-                #cli::cli_inform("Analyzing image {imagesToProcess[i]}")
-                this_date=tryCatch({
-                    date=read_exif_tags(imagesToProcess[i])$DateTime
-                }, error=function(e) {print(e$message); return(NA)})
-                if(is.null(this_date))
-                    missingDateFiles=c(missingDateFiles, imagesToProcess[i])
-                else
+          datetime=data.table()
+          # number of images required to increment the progress bar by 1 percent
+          percentIncrement=round(length(imagesToProcess)/100)
+          print("percentIncrement")
+          print(percentIncrement)
+          missingDateFiles=c()
+          for(i in 1:length(imagesToProcess)){
+              if(i %% percentIncrement == 0){
+                  updateProgressBar(id="myprogress", value = round(100*i/length(imagesToProcess)))
+                  removeUI(selector = "#mytext p", immediate = TRUE)
+                  insertUI(selector = "#mytext", ui=tags$p(glue(appLang$dcProcessedImagesText)), immediate = TRUE)
+              }
+              #cli::cli_inform("Analyzing image {imagesToProcess[i]}")
+              this_date=tryCatch({
+                  date=read_exif_tags(imagesToProcess[i])$DateTime
+              }, error=function(e) {print(e$message); return(NA)})
+              if(is.null(this_date))
+                  missingDateFiles=c(missingDateFiles, imagesToProcess[i])
+              else
                   datetime=rbind(datetime, data.table(fn=imagesToProcess[i], date=this_date))
-            }
-            fwrite(datetime, file.path(outputDirReactive(), "datetime.csv.gz"))
-            # build location and ct
-            datetime[,location:=basename(dirname(dirname(fn)))]
-            datetime[,ct:=basename(dirname(fn))]
-            dateTimeDF(datetime)
-            if(length(missingDateFiles)){
-                sendSweetAlert(
-                    title = "Warning",
-                    text = glue("Timestamps were successfully extracted, but {length(missingDateFiles)} files did not have a DateTime field and will be ignored from the dataset, here are the first 10: {paste(head(missingDateFiles, 10), collapse=', ')}"),
-                    type = "warning"
-                )
-            }else{
+          }
+          fwrite(datetime, file.path(outputDirReactive(), "datetime.csv.gz"))
+          # build location and ct
+          datetime[,location:=basename(dirname(dirname(fn)))]
+          datetime[,ct:=basename(dirname(fn))]
+          dateTimeDF(datetime)
+          if(length(missingDateFiles)){
               sendSweetAlert(
-                  title = "Timestamps extracted",
-                  text = "Timestamps have been extracted and saved to datetime.csv.gz",
+                  title = appLang$dcWarningTitle,
+                  text = glue(appLang$dcMissingDateFilesText),
+                  type = "warning"
+              )
+          }else{
+              sendSweetAlert(
+                  title = appLang$dcTimestampsExtractedTitle,
+                  text = appLang$dcTimestampsExtractedText,
                   type = "success"
               )
-            }
+          }
         }
     })
 
@@ -641,107 +639,106 @@ getRootsInSystem=function(){
         stationsFilePath=as.character(parseFilePaths(roots=getRootsInSystem(), selection=stationsFile)$datapath[1])
         # species=fread(speciesFilePath)
         # trycatch the above and sendsweetalert an error if load fails
-        tryCatch({
-            species=fread(speciesFilePath)
-        }, error=function(e){
-            sendSweetAlert(
-                title = "Error",
-                text = glue("Error reading species file: {e$message}"),
-                type = "error"
-            )
-            return()
-        })
+    tryCatch({
+        species=fread(speciesFilePath)
+    }, error=function(e){
+        sendSweetAlert(
+            title = appLang$dcError,
+            text = glue(appLang$dcErrorReadingSpeciesFile),
+            type = "error"
+        )
+        return()
+    })
 
-        tryCatch({
-            stations=fread(stationsFilePath)
-        }, error=function(e){
-            sendSweetAlert(
-                title = "Error",
-                text = glue("Error reading stations file: {e$message}"),
-                type = "error"
-            )
-            return()
-        })
+    tryCatch({
+        stations=fread(stationsFilePath)
+    }, error=function(e){
+        sendSweetAlert(
+            title = appLang$dcError,
+            text = glue(appLang$dcErrorReadingStationsFile),
+            type = "error"
+        )
+        return()
+    })
         
         # check columns id	Common Name	Lao Name	Species Name	Group	Family	Order in species. Error with the specific columns
         missingcolumns=setdiff(c("id", "Common Name", "Lao Name", "Species Name", "Group", "Family", "Order"), names(species))
-        if(length(missingcolumns)>0){
-            sendSweetAlert(
-                title = "Error",
-                text = glue("The species file is missing the following columns: {paste(missingcolumns, collapse=', ')}"),
-                type = "error"
-            )
-            return()
-        }
-
-        # check columns Station	X	Y
-        missingcolumns=setdiff(c("Station", "X", "Y"), names(stations))
-        if(length(missingcolumns)>0){
-            sendSweetAlert(
-                title = "Error",
-                text = glue("The stations file is missing the following columns: {paste(missingcolumns, collapse=', ')}"),
-                type = "error"
-            )
-            return()
-        }
-
-        # write only the selected columns to the metadata directory
-        metadataDir=file.path(outputDirReactive(), "metadata")
-        if(!dir.exists(metadataDir)){
-            dir.create(metadataDir)
-        }
-        tryCatch({
-        fwrite(species[,c("id", "Common Name", "Lao Name", "Species Name", "Group", "Family", "Order")], file.path(metadataDir, "species.csv"))
-        fwrite(stations[,c("Station", "X", "Y")], file.path(metadataDir, "stations.csv"))
-        # write ct.csv with header Station	Camera ID
-        ctdf=countFilesPerCam(loadedFiles())
-        fwrite(ctdf[,.(Station=location, `Camera ID`=ct)], file.path(metadataDir, "ct.csv"))
-        # write metadata.csv with header Landscape	Block	Code	Season
-        fwrite(data.table(Landscape=input$landscape, Block=input$block, Code=input$code, Season=input$season), file.path(metadataDir, "metadata.csv"))
-        # if the tagging directory doesn't exist, create it
-        taggingDir=file.path(outputDirReactive(), "tagging")
-        if(!dir.exists(taggingDir))
-            dir.create(taggingDir)
-        
-        # write an empty tagging/eventTagging.csv with header ctid	event	numInd	indID	speciesID	indName	Sex	Age
-        fwrite(data.table(ctid=NA, event=NA, numInd=NA, indID=NA, speciesID=NA, indName=NA, Sex=NA, Age=NA), file.path(outputDirReactive(), "tagging", "eventTagging.csv"))
-
-        }, error=function(e){
-            sendSweetAlert(
-                title = "Error",
-                text = glue("Error writing metadata files: {e$message}"),
-                type = "error"
-            )
-            return()
-        })
-        # enable the next button
-        shinyjs::runjs('Shiny.setInputValue("datasetComplete", "")')
-        # send success alert saying the number of species and stations written
+    if(length(missingcolumns)>0){
         sendSweetAlert(
-            title = "Files uploaded",
-            text = glue("{nrow(species)} species and {nrow(stations)} stations have been written to the metadata directory."),
-            type = "success"
+            title = appLang$dcError,
+            text = glue(appLang$dcErrorMissingSpeciesColumns),
+            type = "error"
         )
-        # enable next button
-        shinyjs::runjs('Shiny.setInputValue("datasetComplete", "complete")')
-  })
+        return()
+    }
+
+    # check columns Station X Y
+    missingcolumns=setdiff(c("Station", "X", "Y"), names(stations))
+    if(length(missingcolumns)>0){
+        sendSweetAlert(
+            title = appLang$dcError,
+            text = glue(appLang$dcErrorMissingStationsColumns),
+            type = "error"
+        )
+        return()
+    }
+
+    # write only the selected columns to the metadata directory
+    metadataDir=file.path(outputDirReactive(), "metadata")
+    if(!dir.exists(metadataDir)){
+        dir.create(metadataDir)
+    }
+    tryCatch({
+    fwrite(species[,c("id", "Common Name", "Lao Name", "Species Name", "Group", "Family", "Order")], file.path(metadataDir, "species.csv"))
+    fwrite(stations[,c("Station", "X", "Y")], file.path(metadataDir, "stations.csv"))
+    # write ct.csv with header Station	Camera ID
+    ctdf=countFilesPerCam(loadedFiles())
+    fwrite(ctdf[,.(Station=location, `Camera ID`=ct)], file.path(metadataDir, "ct.csv"))
+    # write metadata.csv with header Landscape	Block	Code	Season
+    fwrite(data.table(Landscape=input$landscape, Block=input$block, Code=input$code, Season=input$season), file.path(metadataDir, "metadata.csv"))
+    # if the tagging directory doesn't exist, create it
+    taggingDir=file.path(outputDirReactive(), "tagging")
+    if(!dir.exists(taggingDir))
+        dir.create(taggingDir)
+    
+    # write an empty tagging/eventTagging.csv with header ctid	event	numInd	indID	speciesID	indName	Sex	Age
+    fwrite(data.table(ctid=NA, event=NA, numInd=NA, indID=NA, speciesID=NA, indName=NA, Sex=NA, Age=NA), file.path(outputDirReactive(), "tagging", "eventTagging.csv"))
+    }, error=function(e){
+        sendSweetAlert(
+            title = appLang$dcError,
+            text = glue(appLang$dcErrorWritingMetadataFiles),
+            type = "error"
+        )
+        return()
+    })
+    # enable the next button
+    shinyjs::runjs('Shiny.setInputValue("datasetComplete", "")')
+    # send success alert saying the number of species and stations written
+    sendSweetAlert(
+        title = appLang$dcSuccess,
+        text = glue(appLang$dcFilesUploadedText),
+        type = "success"
+    )
+    # enable next button
+    shinyjs::runjs('Shiny.setInputValue("datasetComplete", "complete")')
+    })
 
   observeEvent(input$createIntervals, {
     createIntervals(dateTimeDF(), loadedDirectory(), outputDirReactive())
     shinyjs::show("makeSequencesDiv")
   })
 
-  observeEvent(input$makeSequences, {
+observeEvent(input$makeSequences, {
     # check if some sequences already exist
     pathToIntervals=file.path(outputDirReactive(), "metadata", "intervals.csv")
     if(checkIfSomeSequencesExist(intervalFile = pathToIntervals, outputDir = outputDirReactive())){
         shinyWidgets::confirmSweetAlert(
             inputId = "overwriteSequences",
-            title = "Sequences exist",
-            text = "Some sequences already exist. Do you want to overwrite them? If you click 'Reuse', only sequences that are missing will be created. If you click 'Overwrite', all sequences will be (re)created.",
+            title = appLang$dcSequencesExistTitle,
+            text = glue(appLang$dcSequencesExistText),
             type = "warning",
             showCancelButton = TRUE,
-            btn_labels = c("Reuse", "Overwrite"),
+            btn_labels = c(appLang$dcReuseButtonLabel, appLang$dcOverwriteButtonLabel),
             btn_colors=c("#00796B", "#ff9822")
             )
     } else {
