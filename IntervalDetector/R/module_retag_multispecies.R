@@ -154,8 +154,8 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
         # if there are some species in saved tags that are not in the incoming data, we need to remove them
         if(VERBOSE) print("Current species list by ctidint")
         existingTags=copy(userSelections())
-        print(merged_dt_incoming())
-        fwrite(merged_dt_incoming(), "/mnt/t/merged_dt_incoming.csv")
+        if(VERBOSE) print(merged_dt_incoming())
+        # fwrite(merged_dt_incoming(), "/mnt/t/merged_dt_incoming.csv")
         #new_allowed_species=merged_dt_incoming()[,paste(fn,unlist(species))]
         new_allowed_species=copy(merged_dt_incoming())[, .(species = unlist(species)), by = setdiff(names(merged_dt_incoming()), "species")]
         new_allowed_species=new_allowed_species[,paste(fn, species)]
