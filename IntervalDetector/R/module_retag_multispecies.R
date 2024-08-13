@@ -161,7 +161,7 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
         new_allowed_species=new_allowed_species[,paste(fn, species)]
         if(VERBOSE) cli::cli_inform("NEW ALLOWED SPECIES:")
         if(VERBOSE) print(head(new_allowed_species))
-        if(VERBOSE) fwrite(data.table(lol=new_allowed_species), "/mnt/t/new_allowed_species.csv")
+        #if(VERBOSE) fwrite(data.table(lol=new_allowed_species), "/mnt/t/new_allowed_species.csv")
         existingTags[,fnspecies:=paste(fn, species)]
         if(VERBOSE) cli::cli_inform("10 first EXISTING SPECIES: {paste(head(existingTags[,unique(fnspecies)]), collapse=', ')}")
         newTags=existingTags[fnspecies %in% new_allowed_species]
