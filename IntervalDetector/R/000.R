@@ -1,4 +1,4 @@
-VERBOSE=F
-DEBUG=F
+VERBOSE=T
+DEBUG=T
 ## LANGUAGE SETTINGS
 appLang=config::get(file="lang.yml", config=ini::read.ini("sadpar.ini")$app_config$language)

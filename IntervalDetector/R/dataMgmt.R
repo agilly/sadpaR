@@ -343,9 +343,9 @@ saveDataset=function(rootDir, loadedDataset, currentTagging, retag){
   fwrite(loadedDataset$metadata, paste(rootDir(), "metadata/metadata.csv" ,sep="/"))
   fwrite(currentTagging$internalTable, paste(rootDir(), "tagging/eventTagging.csv" ,sep="/"))
   print("writing multipleEventTags.csv")
-  print(retag$tags)
-  if(nrow(retag$tags)) fwrite(retag$tags, paste(rootDir(), "tagging/multipleEventTags.csv" ,sep="/"))
-  statusToWrite=retag$status[!is.na(ctid)]
+  print(retag$tags())
+  if(nrow(retag$tags())) fwrite(retag$tags(), paste(rootDir(), "tagging/multipleEventTags.csv" ,sep="/"))
+  statusToWrite=retag$status()[!is.na(ctid)]
   print("writing multipleEventStatus.csv")
   print(statusToWrite)
   if(nrow(statusToWrite)) fwrite(statusToWrite, paste(rootDir(), "tagging/multipleEventStatus.csv" ,sep="/"))
