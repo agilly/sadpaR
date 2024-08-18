@@ -5,7 +5,39 @@ library(data.table)
 
 
 
-makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRootOriginal){
+takeFirstAmongFilenames = function(paths, verbose = FALSE) {
+  dt = data.table(original_path = paths, basename = basename(paths))
+  
+  # if length 1 return the same
+  if (nrow(dt) == 1) return(dt$original_path)
+  
+  # if all paths contain parenthesed numbers
+  if (all(grepl("\\(\\d+\\)", dt$basename))) {
+    # extract the number from each path
+    dt[, number := as.numeric(gsub(".*\\((\\d+)\\).*", "\\1", basename))]
+    # take the first path with the smallest number
+    if (verbose) cli::cli_inform("Parenthesed: Taking {dt[which.min(number), original_path]} as the earliest among {paste(dt$original_path, collapse=', ')}")
+    return(dt[which.min(number), original_path][1])
+  }
+  
+  # iterate over the prefixes
+  prefixes = c("DCIM", "IMG", "DSC")
+  for (prefix in prefixes) {
+    if (any(grepl(prefix, dt$basename))) {
+      dt[, number := as.numeric(gsub(paste0(".*", prefix, "(\\d+).*"), "\\1", basename))]
+      if (verbose) cli::cli_inform("{prefix}: Taking {dt[which.min(number), original_path]} as the earliest among {paste(dt$original_path, collapse=', ')}")
+      return(dt[which.min(number), original_path][1])
+    }
+  }
+  
+  # otherwise we don't know, get the first one
+  if (verbose) cli::cli_inform("Unknown case: Taking {dt$original_path[1]} as the earliest among {paste(dt$original_path, collapse=', ')}")
+  return(dt[1, original_path])
+}
+
+
+
+makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRootOriginal, aggregateBy){
   if(VERBOSE) cli::cli_inform("Generating record table")
   if(VERBOSE) print("multispecies tagging")
   if(VERBOSE) print(multispecies_tagging())
@@ -24,8 +56,12 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
     if(VERBOSE) print("species_ct")
     tagsp[,ctidevent:=paste(ctid, event)]
     tagsp[,spct:=length(unique(species_name)), by="ctidevent"]
+    #if(VERBOSE) print(tagsp)
+    if(is.numeric(d$dt))
+      d[,dt:=as.POSIXct(chron::chron(dt))]
     if(VERBOSE) print("tagsp 3")
     singlespevents=tagsp[spct==1]
+
     mulspevent=tagsp[spct>1]
     if(VERBOSE) print("singlespevents")
     #mulstatus[,ctidevent:=paste(ctid, interval)]
@@ -51,8 +87,16 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
     # if the merge failed it means that the species is not in the species table
     if(VERBOSE) print("mulsptag A")
     if(VERBOSE) print(mulsptag)
-    if(any(is.na(mulsptag$`Common Name`)))
-        cli::cli_warn("The following species are not in the species table: {paste(unique(mulsptag[is.na(`Common Name`), species], collapse=', ')}")
+    if(any(is.na(mulsptag$`Common Name`))){
+        warningMessage=glue("The following species are not in the species table: {paste(unique(mulsptag[is.na(`Common Name`), species]), collapse=', ')}. {nrow(mulsptag[is.na(`Common Name`), species])} events will be excluded from the record table. Make sure you have the right species.csv")
+        cli::cli_warn(warningMessage)
+        sendSweetAlert(
+            session = session,
+            title = "Warning",
+            text = warningMessage,
+            type = "warning"
+        )
+    }
     mulsptag[,species_name:=paste0(`Common Name`, " - [",`Lao Name`, '] (', `Species Name`, ')')]
     #mulsptag[,c("first", "last"):=list(min(dt), max(dt)), by=.(ctid, interval, species_name)]
     #setorder(mulsptag, ctid, interval, species_name, first)
@@ -61,6 +105,8 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
     if(VERBOSE) print("mulsptag 2")
     independent_interval_threshold=30
     setorder(mulsptag, ct, species_name, dt)
+    # if dt is numeric, use chron
+    print(mulsptag)
     mulsptag[,interval2:=lapply(.SD, function(dt) {vdiff=difftime(dt[-1], dt[-length(dt)], units="sec"); vdiff=c(0, vdiff); vdiff=vdiff<independent_interval_threshold*60;return(cumsum(!vdiff))}),.SDcols="dt",by=.(location, ct, interval, species_name)]
     if(VERBOSE) print("mulsptag 3")
     # number each distinct species per ctid, interval
@@ -75,7 +121,7 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
     setorder(mulsptag, ctid, interval, interval_offset, species_offset, interval2)
     if(VERBOSE) print(mulsptag)
     mulsptag[,c("start", "end"):=list(min(dt), max(dt)), by=.(ctid, interval, species_name, interval2)]
-    mulsptag[,startFileName:=fn[dt==min(dt)], by=.(ctid, interval, species_name, interval2)]
+    mulsptag[,startFileName:=takeFirstAmongFilenames(fn[dt==min(dt)]), by=.(ctid, interval, species_name, interval2)]
     if(VERBOSE) print("mulsptag 6")
     eventtable=unique(mulsptag[,.(ctid, species_name, interval, start, end, V1, interval_offset, species_offset, interval2, startFileName)])
     eventtable[,interval3:=V1+1:.N,by=.(ctid)]
@@ -87,7 +133,7 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
     singlespeventtable[,c("start", "end"):=list(min(dt), max(dt)), by=.(ctidevent)]
     # startfilename
     if(VERBOSE) print("singlespeventtable")
-    singlespeventtable[,startFileName:=fn[dt==start], by=.(ctidevent)]
+    singlespeventtable[,startFileName:=takeFirstAmongFilenames(fn[dt==start]), by=.(ctidevent)]
     singlespeventtable=unique(singlespeventtable[,.(ctid, species_name, interval, start, end, startFileName)])
     eventtable=rbind(eventtable, singlespeventtable)
     if(VERBOSE) print("mulsptag 8")
@@ -96,18 +142,41 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
         cli::cli_warn("There are duplicate intervals per ctid")
 
     eventtable[,c("Station", "Camera"):=tstrsplit(ctid, " ")]
+    # if aggregation is by station, then further aggregate events by station and species
+    if(VERBOSE) {print("Event table:"); print(eventtable)}
+    fwrite(eventtable, "eventtable.csv")
+    if(aggregateBy=="byStation"){
+      setorder(eventtable, Station, species_name, start, end)
+      # merge events with the same species at the same station that overlap, i.e. start1>=start2 and start1<=end2 or end1>=start2 and end1<=end2
+      eventtable[,overlap:=c(0, (start[-1]>=start[-.N] & start[-1]<=end[-.N]) | (end[-1]>=start[-.N] & end[-1]<=end[-.N])), by=.(Station, species_name)]
+      eventtable[,interval2:=cumsum(!overlap), by=.(Station, species_name)]
+      eventtable[,c("start", "end"):=list(min(start), max(end)), by=.(Station, species_name, interval2)]
+      eventtable[,startFileName:=takeFirstAmongFilenames(startFileName), by=.(Station, species_name, interval2)]
+      eventtable=unique(eventtable[,.(Station, species_name, interval2, start, end, startFileName)])
+      setorder(eventtable, Station, species_name, start)
+    } else {
+      setorder(eventtable, ctid, species_name, start)
+    }
+        
     setnames(eventtable, "species_name", "Species")
     setnames(eventtable, "start", "DateTimeOriginal")
     eventtable[,c("Date", "Time"):=list(as.Date(DateTimeOriginal), format(DateTimeOriginal, "%H:%M:%S"))]
     if(VERBOSE) print("mulsptag 9")
     # order by ctid, species, interval
-    setorder(eventtable, ctid, Species, DateTimeOriginal)
+    #setorder(eventtable, ctid, Species, DateTimeOriginal)
     # delta is the difference between the start of the event and the end of the previous event of the same species at this station (first is 0)
-    eventtable[,delta:=DateTimeOriginal-shift(end, fill=DateTimeOriginal[1]), by=.(Station, Camera, Species)]
+    if(aggregateBy=="byStation")
+      groupByCols=c("Station", "Species")
+    else
+      groupByCols=c("Station", "Camera", "Species")
+    eventtable[,delta:=DateTimeOriginal-shift(end, fill=DateTimeOriginal[1]), by=groupByCols]
     # delta.time.secs, delta.time.mins, delta.time.hours and delta.time.days are the same as delta but in seconds, minutes, hours and days
     eventtable[,c("delta.time.secs", "delta.time.mins", "delta.time.hours", "delta.time.days"):=list(as.numeric(delta), as.numeric(delta)/60, as.numeric(delta)/3600, as.numeric(delta)/86400)]
     eventtable[,c("Directory", "FileName"):=list(dirname(startFileName), basename(startFileName))]
-    eventtable=eventtable[,.(Station, Camera, Species, DateTimeOriginal, Date, Time, delta.time.secs, delta.time.mins, delta.time.hours, delta.time.days, Directory, FileName)]
+    if(aggregateBy=="byStation")
+        eventtable=eventtable[,.(Station, Species, DateTimeOriginal, Date, Time, delta.time.secs, delta.time.mins, delta.time.hours, delta.time.days, Directory, FileName)]
+    else
+        eventtable=eventtable[,.(Station, Camera, Species, DateTimeOriginal, Date, Time, delta.time.secs, delta.time.mins, delta.time.hours, delta.time.days, Directory, FileName)]
     return(eventtable)
 }
 
@@ -120,6 +189,8 @@ makeRecordTableUI = function(id, appLang) {
       ),
       fluidRow(
         # column(3,
+        radioGroupButtons(inputId=ns("aggregateBy"), label=appLang$recordTableAggregateByLabel, choiceNames=appLang$recordTableAggregateByChoices, 
+                          choiceValues=c("byCamera", "byStation"), selected="byCamera", justified=F, status = "primary"),
         actionBttn(inputId=ns("generateRecordTableBttn"), label=appLang$generateRecordTableBttn, icon("table"), color="primary", inline=T),
         # ),
         # column(3,
@@ -199,7 +270,10 @@ makeRecordTableServer = function(id, intervals, tags, species, multispecies_tagg
     })
 
     observeEvent(input$generateRecordTableBttn, {
-      recordTableReactive(makeRecordTable(intervals, tags, species, multispecies_tagging, imageRootOriginal))
+      # display a waiter
+      shinybusy::show_modal_spinner(text="Generating record table", spin="flower")
+      recordTableReactive(makeRecordTable(intervals, tags, species, multispecies_tagging, imageRootOriginal, input$aggregateBy))
+      shinybusy::remove_modal_spinner()
     })
 
     output$recordTable=renderUI({

@@ -157,6 +157,10 @@ English:
   dcCameraTrapColumnName: "Camera Trap"
   dcNumberOfImagesColumnName: "Number of Images"
   dcError: "Error"
+  recordTableAggregateByLabel: "Aggregate events by:"
+  recordTableAggregateByChoices: 
+    - "by camera"
+    - "by station"
 ລາວ:  
   appName  : "ໂປແກັມ ຈໍາແນກຂໍ້ມູນຈາກກ້ອງດັກຖ່າຍພາບສັດປ່າ"
   summaryTabLabel  : "ສັງເຂບ"
