@@ -340,3 +340,7 @@ English:
   dcDatetimeFileExistsText: "ໄຟລ໌ datetime.csv.gz ມີຢູ່ທີຢູ່ຂອງຜົນໄດ້ຮັບແລ້ວ. ຕ້ອງການຂຽນທັບມັນບໍ?" 
   dcDatetimeFileExistsTitle: "​ໄຟລ໌ Datetime ມີຢູ່ແລ້ວ" 
   dcErrorCreatingOutputDirectory: "ຜິດພາດໃນການສ້າງທີຢູ່ຂອງຜົນໄດ້ຮັບ: {e$message}" 
+  recordTableAggregateByLabel: "ລວມເຫດການໂດຍ:"
+  recordTableAggregateByChoices:
+    - "ໂດຍ​ກ້ອງ​​ດັກຖ່າຍ"
+    - "ໂດຍ​ສະຖານທີ່​
