@@ -147,10 +147,22 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
     fwrite(eventtable, "eventtable.csv")
     if(aggregateBy=="byStation"){
       setorder(eventtable, Station, species_name, start, end)
+
+      # Define the buffer in seconds
+      buffer = independent_interval_threshold * 60
+
       # merge events with the same species at the same station that overlap, i.e. start1>=start2 and start1<=end2 or end1>=start2 and end1<=end2
-      eventtable[,overlap:=c(0, (start[-1]>=start[-.N] & start[-1]<=end[-.N]) | (end[-1]>=start[-.N] & end[-1]<=end[-.N])), by=.(Station, species_name)]
+      # oldet=copy(eventtable)
+      eventtable[,overlap:=c(0, (start[-1] >= (start[-.N] - buffer) & start[-1]<=(end[-.N] + buffer)) |
+                                (end[-1] >= (start[-.N] - buffer) & end[-1] <= (end[-.N] + buffer))), by=.(Station, species_name)]
       eventtable[,interval2:=cumsum(!overlap), by=.(Station, species_name)]
       eventtable[,c("start", "end"):=list(min(start), max(end)), by=.(Station, species_name, interval2)]
+      # fwrite(eventtable, "eventtable2.csv")
+      # eventtable=oldet
+      # eventtable[,overlap:=c(0, (start[-1]>=start[-.N] & start[-1]<=end[-.N]) | (end[-1]>=start[-.N] & end[-1]<=end[-.N])), by=.(Station, species_name)]
+      # eventtable[,interval2:=cumsum(!overlap), by=.(Station, species_name)]
+      # eventtable[,c("start", "end"):=list(min(start), max(end)), by=.(Station, species_name, interval2)]
+      # fwrite(eventtable, "eventtable3.csv")
       eventtable[,startFileName:=takeFirstAmongFilenames(startFileName), by=.(Station, species_name, interval2)]
       eventtable=unique(eventtable[,.(Station, species_name, interval2, start, end, startFileName)])
       setorder(eventtable, Station, species_name, start)
