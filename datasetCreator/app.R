@@ -562,7 +562,7 @@ getRootsInSystem=function(){
               this_date=tryCatch({
                   date=read_exif_tags(imagesToProcess[i])$DateTime
               }, error=function(e) {print(e$message); return(NA)})
-              if(is.null(this_date))
+              if(is.null(this_date) || is.na(this_date) || this_date=="")
                   missingDateFiles=c(missingDateFiles, imagesToProcess[i])
               else
                   datetime=rbind(datetime, data.table(fn=imagesToProcess[i], date=this_date))
