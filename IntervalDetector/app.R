@@ -18,7 +18,7 @@ library(imager)
 #options(rlang_backtrace_on_error_report = TRUE)
 #required to allow up to 100M load
 options(shiny.maxRequestSize=100*1024^2)
-
+options(shiny.fullstacktrace=TRUE)
 
 # options(error = function() {
 #   calls <- sys.calls()
@@ -712,7 +712,7 @@ output$CTInEditFrame=renderText({
     driveLetters=toupper(list.files("/mnt"))
     driveLetters=paste(driveLetters, "drive")
     drives=c(drives, setNames(mountedDrives, driveLetters))
-    #drives=c(setNames("/mnt/c/Users/R. Tidi Victor/Sync/CameraTrapAI", "debug"), drives)
+    drives=c(setNames("/mnt/c/Users/R. Tidi Victor/Desktop/2024", "debug"), drives)
     drives=c(setNames(Sys.getenv("HOME"), "Home"), drives)
     return(drives)
 

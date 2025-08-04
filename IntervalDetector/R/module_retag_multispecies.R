@@ -113,9 +113,9 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
       if(is.null(dataToDisplay())){
         if(VERBOSE) print("DATA TO DISPLAY IS NULL - INIT")
         if(VERBOSE) print("DEBUG SAVED")
-        if(VERBOSE) print(savedRetag$status[ctid=="T5-NK39 IE095" & interval==109])
+        #if(VERBOSE) print(savedRetag$status[ctid=="T5-NK39 IE095" & interval==109])
         if(VERBOSE) print("DEBUG INCOMING")
-        if(VERBOSE) print(merged_dt_incoming()[ctidint=="T5-NK39 IE095 109"])	
+        #if(VERBOSE) print(merged_dt_incoming()[ctidint=="T5-NK39 IE095 109"])	
         if(!is.null(savedRetag$status)){
           if(VERBOSE) print("SAVED RETAG STATUS EXISTS")
           if(VERBOSE) print(savedRetag$status)
@@ -150,13 +150,15 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
         } 
         dataToDisplay(merged_dt_incoming())
         merged_dt(merged_dt_incoming())
-
         # if there are some species in saved tags that are not in the incoming data, we need to remove them
         if(VERBOSE) print("Current species list by ctidint")
         existingTags=copy(userSelections())
         if(VERBOSE) print(merged_dt_incoming())
         # fwrite(merged_dt_incoming(), "/mnt/t/merged_dt_incoming.csv")
         #new_allowed_species=merged_dt_incoming()[,paste(fn,unlist(species))]
+        if(!nrow(merged_dt_incoming())){
+          return()
+        }
         new_allowed_species=copy(merged_dt_incoming())[, .(species = unlist(species)), by = setdiff(names(merged_dt_incoming()), "species")]
         new_allowed_species=new_allowed_species[,paste(fn, species)]
         if(VERBOSE) cli::cli_inform("NEW ALLOWED SPECIES:")
@@ -224,6 +226,7 @@ retagMultiServer = function(id, merged_dt_incoming, species_dt, appLang, savedRe
         if(VERBOSE) print("Current species list by ctidint")
         if(VERBOSE) print(userSelections())
         existingTags=copy(userSelections())
+        if(!nrow(merged_dt_incoming())) return()
         #new_allowed_species=merged_dt_incoming()[,paste(unlist(fn,species))]
         new_allowed_species=copy(merged_dt_incoming())[, .(species = unlist(species)), by = setdiff(names(merged_dt_incoming()), "species")]
         new_allowed_species=new_allowed_species[,paste(fn, species)]

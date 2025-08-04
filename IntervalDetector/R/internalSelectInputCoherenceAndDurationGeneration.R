@@ -134,7 +134,7 @@ internalSelectInputCoherenceAndDurationGeneration=function(session, input, outpu
         print(strsplit(chosenCT, " "))
         selectedFn=loadedDataset$interval_data[location==strsplit(chosenCT, " ")[[1]][1] & ct == strsplit(chosenCT, " ")[[1]][2] & interval == as.integer(input$ChooseEdit),fn]
         #print("one")
-        #print(head(selectedFn))
+        print(head(selectedFn))
         choices=tstrsplit(selectedFn, loadedDataset$imagePath)[[2]]
         #print("two")
         updateSelectInput(session, inputId = "PicInSequence", choices=choices, selected=choices[1])

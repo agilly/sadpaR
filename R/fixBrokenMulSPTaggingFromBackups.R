@@ -5,23 +5,30 @@ library(data.table)
 # the code below reads all the multipleEventTags.csv files and iterately compares them to the previous file, building a new multipleEventTags.csv file
 # it also checks that the species in the multipleEventTags.csv file are consistent with the species in the eventTagging file
  
-mt=fread("/mnt/t/CT_Data//NKD_2022/NKD 2022//tagging/multipleEventTags.csv")
-intervals=fread("/mnt/t/CT_Data//NKD_2022/NKD 2022/metadata/intervals.csv")
-intervals[,fn:=sub("/mnt/d/CT II/NKD_2022/Data processing/raw_images", "", fn, fixed=T)]
+#mt=fread("/mnt/t/CT_Data//NKD_2022/NKD 2022//tagging/multipleEventTags.csv")
+mt=fread("/mnt/c/testDataset/tagging/multipleEventTags.csv")
+#intervals=fread("/mnt/t/CT_Data//NKD_2022/NKD 2022/metadata/intervals.csv")
+intervals=fread("/mnt/c/testDataset/metadata/intervals.csv")
+#intervals[,fn:=sub("/mnt/d/CT II/NKD_2022/Data processing/raw_images", "", fn, fixed=T)]
+intervals[,fn:=sub("F:/ADB/NCNX/NCNX_Bio_monitoring/NCNX_Otter_Survey_2024/Data/images_renamed", "", fn, fixed=T)]
 m=merge(mt, intervals)
-species=fread("/mnt/t/CT_Data/NKD_2022/NKD\ 2022/metadata/species.csv")
+#species=fread("/mnt/t/CT_Data/NKD_2022/NKD\ 2022/metadata/species.csv")
+species=fread("/mnt/c/testDataset/metadata/species.csv")
 
-taggingFiles=list.files("/mnt/t/CT_Data//NKD_2022/NKD 2022/jay_backups/", pattern="multipleEventTag", recursive = T, full.names=T)
-eventOfInterestTaggedFiles=intervals[ctid=="T1-NK01 IE002" & interval==258]$fn
+#taggingFiles=list.files("/mnt/t/CT_Data//NKD_2022/NKD 2022/jay_backups/", pattern="multipleEventTag", recursive = T, full.names=T)
+taggingFiles=list.files("/mnt/c/testDataset/backup/", pattern="multipleEventTag", recursive = T, full.names=T)
 
-# read all taggingFiles and store the ones that have tags for these files in fn
-foundFiles=c()
-for (taggingFile in taggingFiles){
-  mt=fread(taggingFile)
-  if (any(mt$fn %in% eventOfInterestTaggedFiles)){
-    foundFiles=c(foundFiles, taggingFile)
-  }
-}
+
+# eventOfInterestTaggedFiles=intervals[ctid=="T1-NK01 IE002" & interval==258]$fn
+
+# # read all taggingFiles and store the ones that have tags for these files in fn
+# foundFiles=c()
+# for (taggingFile in taggingFiles){
+#   mt=fread(taggingFile)
+#   if (any(mt$fn %in% eventOfInterestTaggedFiles)){
+#     foundFiles=c(foundFiles, taggingFile)
+#   }
+# }
 
 # sort all files by the number of rows
 filestats=data.table(fn=taggingFiles)
@@ -29,7 +36,7 @@ filestats[,date:=sapply(fn, function(x) basename(dirname(dirname(x))))]
 filestats[,nrow:=sapply(fn, function(x) nrow(fread(x)))]
 filestats[,taggingFile:=sapply(fn, function(x) list.files(dirname(x), pattern="eventTagging", full.names=T))]
 # make sure date is converted to date according to "28.07.2024-05.38"
-filestats[,date:=as.Date(date, format="%d.%m.%Y-%H.%M")]
+filestats[,date:=as.POSIXct(date, format="%d.%m.%Y-%H.%M")]
 setorder(filestats, date)
 
 d=fread("/mnt/t/CT_Data//NKD_2022/NKD 2022/jay_backups//16.07.2024-00.53/tagging/multipleEventTags.csv")
@@ -68,11 +75,13 @@ d=fread("/mnt/t/CT_Data//NKD_2022/NKD 2022/jay_backups//16.07.2024-00.53/tagging
 # }
 
 # read the first file
-et = fread(filestats[fn == "/mnt/t/CT_Data//NKD_2022/NKD 2022/jay_backups//16.07.2024-00.53/tagging/multipleEventTags.csv"]$taggingFile)
+#et = fread(filestats[fn == "/mnt/t/CT_Data//NKD_2022/NKD 2022/jay_backups//16.07.2024-00.53/tagging/multipleEventTags.csv"]$taggingFile)
+et = fread(filestats[1]$taggingFile)
 et[, ctidevent := paste(ctid, event, sep = " ")]
 
 
-i = which(filestats$fn == "/mnt/t/CT_Data//NKD_2022/NKD 2022/jay_backups//16.07.2024-00.53/tagging/multipleEventTags.csv")
+#i = which(filestats$fn == "/mnt/t/CT_Data//NKD_2022/NKD 2022/jay_backups//16.07.2024-00.53/tagging/multipleEventTags.csv")
+i = 1
 
 curMulSpTagging = fread(filestats[i]$fn)
 curMulSpTagging = merge(curMulSpTagging, intervals, by = "fn")
@@ -161,9 +170,11 @@ while (i < nrow(filestats)) {
 }
 
 # explode the speciesListOld column into multiple rows
-fwrite(curMulSpTagging[, list(species=unlist(speciesListOld)), by=fn], "/mnt/t/CT_Data/NKD_2022//NKD 2022/tagging/multipleEventTags.csv")
+#fwrite(curMulSpTagging[, list(species=unlist(speciesListOld)), by=fn], "/mnt/t/CT_Data/NKD_2022//NKD 2022/tagging/multipleEventTags.csv")
+fwrite(curMulSpTagging[, list(species=unlist(speciesListOld)), by=fn], "/mnt/c/testDataset/tagging/multipleEventTags.fixed.csv")
 
-mulEventSt=fread("/mnt/t/CT_Data/NKD_2022//NKD 2022/tagging/multipleEventStatus.csv")
+#mulEventSt=fread("/mnt/t/CT_Data/NKD_2022//NKD 2022/tagging/multipleEventStatus.csv")
+mulEventSt=fread("/mnt/c/testDataset/tagging/multipleEventStatus.csv")
 mulEventSt[,ctidint:=paste(ctid, interval, sep=" ")]
 
 # are there any empty events?
@@ -171,3 +182,7 @@ curMulSpTagging=merge(curMulSpTagging, intervals, by="fn")
 curMulSpTagging[,ctidevent:=paste(ctid, interval, sep=" ")]
 
 mulEventSt$ctidint[!mulEventSt$ctidint %in% curMulSpTagging$ctidevent]
+
+# compare this with mt, which is the current multipleEventTags.csv file
+mt=merge(mt, intervals)
+mt[,ctidevent:=paste(ctid, interval, sep=" ")]

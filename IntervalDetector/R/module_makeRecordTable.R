@@ -42,7 +42,7 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
   if(VERBOSE) print("multispecies tagging")
   if(VERBOSE) print(multispecies_tagging())
     multagging=multispecies_tagging()$tags()
-    d=intervals()
+    d=copy(intervals())  # Create a copy to avoid modifying the original data
     tag=tags()
     if(VERBOSE) print("tags")
     tagsp=merge(tag, species(), by.x="speciesID", by.y="id", all.x=T)
@@ -56,7 +56,10 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
     if(VERBOSE) print("species_ct")
     tagsp[,ctidevent:=paste(ctid, event)]
     tagsp[,spct:=length(unique(species_name)), by="ctidevent"]
-    #if(VERBOSE) print(tagsp)
+    if(VERBOSE) {
+      print("tagsp")
+      print(tagsp[Station == "Otter26" & Camera == "CT21" & event == 121])
+    }
     if(is.numeric(d$dt))
       d[,dt:=as.POSIXct(chron::chron(dt))]
     if(VERBOSE) print("tagsp 3")
@@ -64,29 +67,27 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
 
     mulspevent=tagsp[spct>1]
     if(VERBOSE) print("singlespevents")
-    #mulstatus[,ctidevent:=paste(ctid, interval)]
-
-    #unTaggedMulSpEvents = setdiff(unique(mulspevent$ctidevent), unique(mulstatus$ctidevent))
-    #noMulSpeciesTagged = setdiff(unique(mulstatus$ctidevent), unique(mulspevent$ctidevent))
-
-    #if(length(unTaggedMulSpEvents))
-    #    cli::cli_warn("The following multiple species events are not tagged: {paste(unTaggedMulSpEvents, collapse=', ')}")
-    #if(length(noMulSpeciesTagged))
-    #    cli::cli_warn("The following multiple species events are tagged but have no status: {paste(noMulSpeciesTagged, collapse=', ')}")
     d[,fn:=sub(imageRootOriginal(), "", fn)]
     if(VERBOSE) print("d")
     if(VERBOSE) print(d)
     if(VERBOSE) print("multagging")
     if(VERBOSE) print(multagging)
+    if(VERBOSE) print(" d which has Otter26__CT21__2024-04-14 in its fn")
+    if(VERBOSE) print(d[fn %like% "Otter26__CT21__2024-04-14"])
+    if(VERBOSE) print("multagging which has Otter26__CT21__2024-04-14 in its fn")
+    if(VERBOSE) print(multagging[fn %like% "Otter26__CT21__2024-04-14"])
     mulsptag=merge(d, multagging, by="fn")
-    if(VERBOSE) print("mulsptag")
-    if(VERBOSE) print(mulsptag)
+    if(VERBOSE) {
+      print("mulsptag")
+      print(mulsptag[location == "Otter26" & ct == "CT21" & interval == 121])
+    }
     if(VERBOSE) print("species")
     if(VERBOSE) print(species())
     mulsptag=merge(mulsptag, species(), by.x="species", by.y="id", all.x=T)
-    # if the merge failed it means that the species is not in the species table
-    if(VERBOSE) print("mulsptag A")
-    if(VERBOSE) print(mulsptag)
+    if(VERBOSE) {
+      print("mulsptag A")
+      print(mulsptag[location == "Otter26" & ct == "CT21" & interval == 121])
+    }
     if(any(is.na(mulsptag$`Common Name`))){
         warningMessage=glue("The following species are not in the species table: {paste(unique(mulsptag[is.na(`Common Name`), species]), collapse=', ')}. {nrow(mulsptag[is.na(`Common Name`), species])} events will be excluded from the record table. Make sure you have the right species.csv")
         cli::cli_warn(warningMessage)
@@ -98,52 +99,70 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
         )
     }
     mulsptag[,species_name:=paste0(`Common Name`, " - [",`Lao Name`, '] (', `Species Name`, ')')]
-    #mulsptag[,c("first", "last"):=list(min(dt), max(dt)), by=.(ctid, interval, species_name)]
-    #setorder(mulsptag, ctid, interval, species_name, first)
-    #mulsptag=unique(mulsptag[,c("ctid", "interval", "species_name", "first", "last")])
-    #mulsptag[,vdiff:=ifelse(.N-1, c(0, difftime(first[-1], last[-.N], units="secs")), 0), by=.(ctid, interval, species_name)]
     if(VERBOSE) print("mulsptag 2")
     independent_interval_threshold=30
     setorder(mulsptag, ct, species_name, dt)
-    # if dt is numeric, use chron
-    print(mulsptag)
+    if(VERBOSE) {
+      print("mulsptag 3")
+      print(mulsptag[location == "Otter26" & ct == "CT21" & interval == 121])
+    }
     mulsptag[,interval2:=lapply(.SD, function(dt) {vdiff=difftime(dt[-1], dt[-length(dt)], units="sec"); vdiff=c(0, vdiff); vdiff=vdiff<independent_interval_threshold*60;return(cumsum(!vdiff))}),.SDcols="dt",by=.(location, ct, interval, species_name)]
-    if(VERBOSE) print("mulsptag 3")
-    # number each distinct species per ctid, interval
+    if(VERBOSE) {
+      print("mulsptag 4")
+      print(mulsptag[location == "Otter26" & ct == "CT21" & interval == 121])
+    }
     mulsptag[,species_offset:=match(species_name, unique(species_name)), by=.(ctid, interval)]
-    # number each distinct interval per ctid
     mulsptag[,interval_offset:=match(interval, unique(interval)), by=.(ctid)]
-    if(VERBOSE) print("mulsptag 4")
-    #mulsptag[,interval2:=interval2+species_offset+interval_offset]
+    if(VERBOSE) {
+      print("mulsptag 5")
+      print(mulsptag[location == "Otter26" & ct == "CT21" & interval == 121])
+    }
     mulsptag=merge(mulsptag, d[,max(interval), by=.(ctid)], by="ctid")
-    #mulsptag[,interval2:=interval2+V1]
-    if(VERBOSE) print("mulsptag 5")
+    if(VERBOSE) {
+      print("mulsptag 6")
+      print(mulsptag[location == "Otter26" & ct == "CT21" & interval == 121])
+    }
     setorder(mulsptag, ctid, interval, interval_offset, species_offset, interval2)
-    if(VERBOSE) print(mulsptag)
+    if(VERBOSE) {
+      print("mulsptag 7")
+      print(mulsptag[location == "Otter26" & ct == "CT21" & interval == 121])
+    }
     mulsptag[,c("start", "end"):=list(min(dt), max(dt)), by=.(ctid, interval, species_name, interval2)]
     mulsptag[,startFileName:=takeFirstAmongFilenames(fn[dt==min(dt)]), by=.(ctid, interval, species_name, interval2)]
-    if(VERBOSE) print("mulsptag 6")
+    if(VERBOSE) {
+      print("mulsptag 8")
+      print(mulsptag[location == "Otter26" & ct == "CT21" & interval == 121])
+    }
     eventtable=unique(mulsptag[,.(ctid, species_name, interval, start, end, V1, interval_offset, species_offset, interval2, startFileName)])
     eventtable[,interval3:=V1+1:.N,by=.(ctid)]
     eventtable=eventtable[,.(ctid, species_name, interval3, start, end, startFileName)]
     setnames(eventtable, "interval3", "interval")
-    if(VERBOSE) print("mulsptag 7")
+    if(VERBOSE) {
+      print("eventtable 1")
+      print(eventtable[ctid == "Otter26 CT21" & interval == 121])
+    }
     d[,ctidevent:=paste(ctid, interval)]
     singlespeventtable=merge(unique(singlespevents[,.(species_name, ctidevent)]), d, by="ctidevent")
     singlespeventtable[,c("start", "end"):=list(min(dt), max(dt)), by=.(ctidevent)]
-    # startfilename
-    if(VERBOSE) print("singlespeventtable")
+    if(VERBOSE) {
+      print("singlespeventtable")
+      #print(singlespeventtable)
+    }
     singlespeventtable[,startFileName:=takeFirstAmongFilenames(fn[dt==start]), by=.(ctidevent)]
     singlespeventtable=unique(singlespeventtable[,.(ctid, species_name, interval, start, end, startFileName)])
     eventtable=rbind(eventtable, singlespeventtable)
-    if(VERBOSE) print("mulsptag 8")
-    # check that all intervals are unique per ctid
+    if(VERBOSE) {
+      print("eventtable 2")
+      #print(eventtable)
+    }
     if(any(eventtable[,anyDuplicated(interval),by=ctid]$V1))
         cli::cli_warn("There are duplicate intervals per ctid")
 
     eventtable[,c("Station", "Camera"):=tstrsplit(ctid, " ")]
-    # if aggregation is by station, then further aggregate events by station and species
-    if(VERBOSE) {print("Event table:"); print(eventtable)}
+    if(VERBOSE) {
+      print("eventtable 3")
+      #print(eventtable)
+    }
     fwrite(eventtable, "eventtable.csv")
     if(aggregateBy=="byStation"){
       setorder(eventtable, Station, species_name, start, end)
@@ -152,17 +171,10 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
       buffer = independent_interval_threshold * 60
 
       # merge events with the same species at the same station that overlap, i.e. start1>=start2 and start1<=end2 or end1>=start2 and end1<=end2
-      # oldet=copy(eventtable)
       eventtable[,overlap:=c(0, (start[-1] >= (start[-.N] - buffer) & start[-1]<=(end[-.N] + buffer)) |
                                 (end[-1] >= (start[-.N] - buffer) & end[-1] <= (end[-.N] + buffer))), by=.(Station, species_name)]
       eventtable[,interval2:=cumsum(!overlap), by=.(Station, species_name)]
       eventtable[,c("start", "end"):=list(min(start), max(end)), by=.(Station, species_name, interval2)]
-      # fwrite(eventtable, "eventtable2.csv")
-      # eventtable=oldet
-      # eventtable[,overlap:=c(0, (start[-1]>=start[-.N] & start[-1]<=end[-.N]) | (end[-1]>=start[-.N] & end[-1]<=end[-.N])), by=.(Station, species_name)]
-      # eventtable[,interval2:=cumsum(!overlap), by=.(Station, species_name)]
-      # eventtable[,c("start", "end"):=list(min(start), max(end)), by=.(Station, species_name, interval2)]
-      # fwrite(eventtable, "eventtable3.csv")
       eventtable[,startFileName:=takeFirstAmongFilenames(startFileName), by=.(Station, species_name, interval2)]
       eventtable=unique(eventtable[,.(Station, species_name, interval2, start, end, startFileName)])
       setorder(eventtable, Station, species_name, start)
@@ -173,22 +185,25 @@ makeRecordTable=function(intervals, tags, species, multispecies_tagging, imageRo
     setnames(eventtable, "species_name", "Species")
     setnames(eventtable, "start", "DateTimeOriginal")
     eventtable[,c("Date", "Time"):=list(as.Date(DateTimeOriginal), format(DateTimeOriginal, "%H:%M:%S"))]
-    if(VERBOSE) print("mulsptag 9")
-    # order by ctid, species, interval
-    #setorder(eventtable, ctid, Species, DateTimeOriginal)
-    # delta is the difference between the start of the event and the end of the previous event of the same species at this station (first is 0)
+    if(VERBOSE) {
+      print("eventtable 4")
+      #print(eventtable[Station == "Otter26" & Camera == "CT21" & event == 121])
+    }
     if(aggregateBy=="byStation")
       groupByCols=c("Station", "Species")
     else
       groupByCols=c("Station", "Camera", "Species")
     eventtable[,delta:=DateTimeOriginal-shift(end, fill=DateTimeOriginal[1]), by=groupByCols]
-    # delta.time.secs, delta.time.mins, delta.time.hours and delta.time.days are the same as delta but in seconds, minutes, hours and days
     eventtable[,c("delta.time.secs", "delta.time.mins", "delta.time.hours", "delta.time.days"):=list(as.numeric(delta), as.numeric(delta)/60, as.numeric(delta)/3600, as.numeric(delta)/86400)]
     eventtable[,c("Directory", "FileName"):=list(dirname(startFileName), basename(startFileName))]
     if(aggregateBy=="byStation")
         eventtable=eventtable[,.(Station, Species, DateTimeOriginal, Date, Time, delta.time.secs, delta.time.mins, delta.time.hours, delta.time.days, Directory, FileName)]
     else
         eventtable=eventtable[,.(Station, Camera, Species, DateTimeOriginal, Date, Time, delta.time.secs, delta.time.mins, delta.time.hours, delta.time.days, Directory, FileName)]
+    if(VERBOSE) {
+      print("final eventtable")
+      #print(eventtable[Station == "Otter26" & Camera == "CT21" & event == 121])
+    }
     return(eventtable)
 }
 
