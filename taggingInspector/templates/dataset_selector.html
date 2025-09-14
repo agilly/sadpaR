@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}Select Dataset - Camera Trap Tagging Inspector{% endblock %}
+
+{% block extra_css %}
+<style>
+    .directory-browser {
+        max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+    }
+    
+    .directory-item {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f8f9fa;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+    
+    .directory-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .directory-item:last-child {
+        border-bottom: none;
+    }
+    
+    .directory-item.selected {
+        background-color: #e7f3ff;
+        border-color: #0d6efd;
+    }
+    
+    .directory-icon {
+        margin-right: 0.75rem;
+        width: 20px;
+        text-align: center;
+    }
+    
+    .breadcrumb-nav {
+        background-color: #f8f9fa;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 0;
+    }
+    
+    .breadcrumb-item button {
+        background: none;
+        border: none;
+        color: #0d6efd;
+        text-decoration: underline;
+        padding: 0;
+    }
+    
+    .breadcrumb-item button:hover {
+        color: #0a58ca;
+    }
+    
+    .current-path {
+        font-family: monospace;
+        font-size: 0.9em;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-folder-open fa-3x text-primary mb-3"></i>
+                    <h2 class="card-title">Select Camera Trap Dataset</h2>
+                    <p class="text-muted">
+                        Browse and select a directory containing your camera trap dataset
+                    </p>
+                </div>
+                
+                <!-- Directory Browser -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-folder"></i> Browse Directories
+                                </h5>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="goUp()" id="upBtn" disabled>
+                                        <i class="fas fa-arrow-up"></i> Up
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="refresh()" id="refreshBtn">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="position-relative">
+                                <div class="current-path" id="currentPath"></div>
+                                <div class="directory-browser" id="directoryBrowser">
+                                    <!-- Directory contents will be loaded here -->
+                                </div>
+                                <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span id="selectedPath" class="text-muted">No directory selected</span>
+                            </div>
+                            <div>
+                                <button class="btn btn-success" onclick="loadDataset()" id="loadBtn" disabled>
+                                    <i class="fas fa-check"></i> Load Dataset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-info-circle"></i> Dataset Requirements
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <h6>Required Structure:</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-folder text-warning"></i> <strong>/sequences</strong></li>
+                                    <li><i class="fas fa-folder text-warning"></i> <strong>/metadata</strong> with:
+                                        <ul class="mt-2 ms-3">
+                                            <li><i class="fas fa-file-csv text-info"></i> species.csv</li>
+                                            <li><i class="fas fa-file-csv text-info"></i> intervals.csv</li>
+                                            <li><i class="fas fa-file-csv text-info"></i> stations.csv</li>
+                                            <li><i class="fas fa-file-csv text-info"></i> ct.csv</li>
+                                            <li><i class="fas fa-file-csv text-info"></i> metadata.csv</li>
+                                        </ul>
+                                    </li>
+                                    <li><i class="fas fa-folder text-success"></i> <strong>/tagging</strong> (optional)</li>
+                                </ul>
+                                
+                                <div class="alert alert-info mt-3">
+                                    <small>
+                                        <i class="fas fa-lightbulb"></i>
+                                        <strong>Tips:</strong>
+                                        <br>• Double-click folders to navigate
+                                        <br>• Press Enter to load selected dataset
+                                        <br>• Press Backspace to go up one level
+                                        <br>• Press F5 to refresh current directory
+                                        <br>• Datasets are marked with <i class="fas fa-camera text-success"></i>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;">
+                </div>
+                
+                <div id="loadingMessage" class="alert alert-info mt-3" style="display: none;">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        <span>Loading dataset...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPath = '';
+let selectedPath = '';
+let parentPath = null;
+
+$(document).ready(function() {
+    loadDirectory('');
+});
+
+function showLoading() {
+    $('#loadingOverlay').show();
+}
+
+function hideLoading() {
+    $('#loadingOverlay').hide();
+}
+
+function loadDirectory(path) {
+    showLoading();
+    
+    $.ajax({
+        url: '/browse_directory',
+        data: { path: path },
+        success: function(response) {
+            currentPath = response.current_path || '';
+            parentPath = response.parent_path;
+            
+            updatePathDisplay();
+            renderDirectoryContents(response.items);
+            updateNavigationButtons();
+            hideLoading();
+        },
+        error: function(xhr) {
+            hideLoading();
+            let errorMsg = 'Error loading directory';
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                errorMsg = xhr.responseJSON.error;
+            }
+            $('#errorMessage').text(errorMsg).show();
+        }
+    });
+}
+
+function updatePathDisplay() {
+    const pathDisplay = currentPath || 'Select a starting location';
+    $('#currentPath').text(pathDisplay);
+}
+
+function renderDirectoryContents(items) {
+    const browser = $('#directoryBrowser');
+    browser.empty();
+    
+    if (!items.length) {
+        browser.append('<div class="text-center text-muted py-4">No directories found</div>');
+        return;
+    }
+    
+    items.forEach(function(item) {
+        let icon = '';
+        let className = 'directory-item';
+        
+        if (item.type === 'drive') {
+            icon = '<i class="fas fa-hdd text-secondary"></i>';
+        } else if (item.type === 'dataset') {
+            icon = '<i class="fas fa-camera text-success"></i>';
+            className += ' border-start border-success border-3';
+        } else {
+            icon = '<i class="fas fa-folder text-warning"></i>';
+        }
+        
+        const element = $(`
+            <div class="${className}" data-path="${item.path}">
+                <span class="directory-icon">${icon}</span>
+                <span class="directory-name">${item.name}</span>
+                ${item.type === 'dataset' ? '<span class="badge bg-success ms-2">Dataset</span>' : ''}
+            </div>
+        `);
+        
+        // Add click handler using jQuery to avoid path escaping issues
+        element.on('click', function() {
+            selectDirectory(item.path);
+        });
+        
+        browser.append(element);
+    });
+}
+
+function selectDirectory(path) {
+    // Remove previous selection
+    $('.directory-item').removeClass('selected');
+    
+    // Add selection to clicked item - use filter to avoid path escaping issues
+    $('.directory-item').filter(function() {
+        return $(this).data('path') === path;
+    }).addClass('selected');
+    
+    selectedPath = path;
+    $('#selectedPath').text(path);
+    $('#loadBtn').prop('disabled', false);
+}
+
+function updateNavigationButtons() {
+    $('#upBtn').prop('disabled', !parentPath);
+}
+
+function goUp() {
+    if (parentPath) {
+        loadDirectory(parentPath);
+        selectedPath = '';
+        updateSelectionDisplay();
+    }
+}
+
+function refresh() {
+    loadDirectory(currentPath);
+}
+
+function updateSelectionDisplay() {
+    $('#selectedPath').text(selectedPath || 'No directory selected');
+    $('#loadBtn').prop('disabled', !selectedPath);
+}
+
+// Double-click to navigate into directory
+$(document).on('dblclick', '.directory-item', function() {
+    const path = $(this).data('path');
+    loadDirectory(path);
+    selectedPath = '';
+    updateSelectionDisplay();
+});
+
+// Keyboard shortcuts
+$(document).keydown(function(e) {
+    if (e.key === 'Enter' && selectedPath) {
+        e.preventDefault();
+        loadDataset();
+    } else if (e.key === 'Backspace' && parentPath) {
+        e.preventDefault();
+        goUp();
+    } else if (e.key === 'F5') {
+        e.preventDefault();
+        refresh();
+    }
+});
+
+function loadDataset() {
+    if (!selectedPath) {
+        alert('Please select a directory first');
+        return;
+    }
+    
+    $('#errorMessage').hide();
+    $('#loadingMessage').show();
+    $('#loadBtn').prop('disabled', true);
+    
+    $.ajax({
+        url: '/select_dataset',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ directory: selectedPath }),
+        success: function(response) {
+            if (response.success) {
+                window.location.href = '/main';
+            } else {
+                $('#errorMessage').text(response.message).show();
+                $('#loadBtn').prop('disabled', false);
+                $('#loadingMessage').hide();
+            }
+        },
+        error: function() {
+            $('#errorMessage').text('An error occurred while loading the dataset.').show();
+            $('#loadBtn').prop('disabled', false);
+            $('#loadingMessage').hide();
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Main Interface - Camera Trap Tagging Inspector{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-paw"></i> Tagged Species
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if species_list %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Common Name</th>
+                                    <th>Scientific Name</th>
+                                    <th class="text-center">Events</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for species in species_list %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ species.common_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <em>{{ species.species_name }}</em>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ species.event_count }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="/species/{{ species.id|int }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+                        <h5>No Tagged Species Found</h5>
+                        <p>This dataset doesn't contain any tagging data, or the tagging files are missing.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Dataset Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <h6 class="text-muted mb-1">Location</h6>
+                        <strong>{{ dataset_info.get('Landscape', 'Unknown') }}</strong>
+                        {% if dataset_info.get('Block') %}
+                            <br><small class="text-muted">{{ dataset_info.Block }}</small>
+                        {% endif %}
+                    </div>
+                    
+                    {% if dataset_info.get('Season') %}
+                    <div class="col-12 mb-3">
+                        <h6 class="text-muted mb-1">Season</h6>
+                        <strong>{{ dataset_info.Season }}</strong>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="col-6 mb-2">
+                        <h6 class="text-muted mb-1">Stations</h6>
+                        <strong>{{ dataset_info.total_stations }}</strong>
+                    </div>
+                    
+                    <div class="col-6 mb-2">
+                        <h6 class="text-muted mb-1">Species</h6>
+                        <strong>{{ dataset_info.total_species }}</strong>
+                    </div>
+                    
+                    <div class="col-12">
+                        <h6 class="text-muted mb-1">Sequences</h6>
+                        <strong>{{ dataset_info.total_sequences }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cog"></i> Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="location.reload()">
+                    <i class="fas fa-sync"></i> Refresh Data
+                </button>
+                
+                <button class="btn btn-outline-warning btn-sm w-100" onclick="selectNewDataset()">
+                    <i class="fas fa-folder-open"></i> Select Different Dataset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not species_list %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <h5 class="alert-heading">
+                <i class="fas fa-lightbulb"></i> Getting Started
+            </h5>
+            <p class="mb-0">
+                This dataset appears to be missing tagging data. To use this tool effectively, you need:
+            </p>
+            <ul class="mt-2 mb-0">
+                <li>A <code>/tagging</code> folder with tagging CSV files</li>
+                <li>Species tagged in <code>eventTagging.csv</code></li>
+                <li>Photo-level tags in <code>multipleEventTags.csv</code></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectNewDataset() {
+    if (confirm('Are you sure you want to select a different dataset? This will reload the application.')) {
+        window.location.href = '/';
+    }
+}
+</script>
+{% endblock %}

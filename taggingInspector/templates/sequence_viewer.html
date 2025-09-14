@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Sequence {{ ctid }} - {{ interval }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .view-toggle {
+        margin-bottom: 1rem;
+    }
+    
+    .gif-viewer, .photo-viewer {
+        background: #f8f9fa;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .sequence-gif {
+        max-width: 100%;
+        max-height: 600px;
+        border-radius: 0.375rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .photo-slide {
+        display: none;
+    }
+    
+    .photo-slide:first-child {
+        display: block;
+    }
+    
+    .photo-slide img {
+        max-width: 100%;
+        max-height: 600px;
+        border-radius: 0.375rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tags-table {
+        margin-top: 1rem;
+    }
+    
+    .photo-tags {
+        background: #e9ecef;
+        border-radius: 0.25rem;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    .tag-badge {
+        margin: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/main">Species List</a></li>
+                <li class="breadcrumb-item"><a href="javascript:history.back()">Species Sequences</a></li>
+                <li class="breadcrumb-item active">{{ ctid }} - Sequence {{ interval }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-film"></i> {{ ctid }} - Sequence {{ interval }}
+                    </h3>
+                    
+                    <div class="btn-group view-toggle" role="group">
+                        <input type="radio" class="btn-check" name="viewMode" id="gifView" value="gif" checked>
+                        <label class="btn btn-outline-primary" for="gifView">
+                            <i class="fas fa-play"></i> GIF View
+                        </label>
+                        
+                        <input type="radio" class="btn-check" name="viewMode" id="photoView" value="photo">
+                        <label class="btn btn-outline-primary" for="photoView">
+                            <i class="fas fa-images"></i> Photo View
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- GIF Viewer -->
+                <div id="gifViewer" class="gif-viewer">
+                    <img src="/serve_gif/{{ ctid|urlencode }}/{{ gif_filename }}" alt="Sequence {{ interval }}" class="sequence-gif zoomable-image">
+                    <div class="mt-3">
+                        <small class="text-muted">Click image to zoom in/out</small>
+                    </div>
+                </div>
+                
+                <!-- Photo Viewer -->
+                <div id="photoViewer" class="photo-viewer" style="display: none;">
+                    {% if photos %}
+                        <div class="position-relative">
+                            {% for photo in photos %}
+                            <div class="photo-slide" data-index="{{ loop.index0 }}">
+                                <img src="/serve_image/{{ photo.path }}" alt="Photo {{ loop.index }}" class="zoomable-image">
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock"></i> {{ photo.datetime }}
+                                        <i class="fas fa-map-marker-alt ms-3"></i> {{ photo.location }}
+                                    </small>
+                                </div>
+                                
+                                {% if photo.tags %}
+                                <div class="photo-tags">
+                                    <strong>Species in this photo:</strong>
+                                    {% for tag in photo.tags %}
+                                    <span class="badge bg-success tag-badge">{{ tag.common_name }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            
+                            <!-- Navigation buttons -->
+                            <button type="button" class="photo-nav prev" onclick="prevPhoto()" id="prevBtn">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button type="button" class="photo-nav next" onclick="nextPhoto()" id="nextBtn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            
+                            <!-- Photo counter -->
+                            <div class="photo-counter" id="photoCounter">
+                                1 of {{ photos|length }}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                Use arrow keys or buttons to navigate • Click image to zoom
+                            </small>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-images fa-3x mb-3"></i>
+                            <h5>No Photos Found</h5>
+                            <p>No individual photos were found for this sequence.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tags"></i> Tagged Species
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if sequence_tags %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Species</th>
+                                    <th>Count</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tag in sequence_tags %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ tag.common_name }}</strong>
+                                        <br><small class="text-muted"><em>{{ tag.species_name }}</em></small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ tag.num_individuals }}</span>
+                                    </td>
+                                    <td>
+                                        {% if tag.individual_name %}
+                                            <small><strong>Name:</strong> {{ tag.individual_name }}</small><br>
+                                        {% endif %}
+                                        {% if tag.sex != 'Unknown' %}
+                                            <small><strong>Sex:</strong> {{ tag.sex }}</small><br>
+                                        {% endif %}
+                                        {% if tag.age != 'Unknown' %}
+                                            <small><strong>Age:</strong> {{ tag.age }}</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-tag fa-2x mb-2"></i>
+                        <p class="mb-0">No species tags found for this sequence.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if photos %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Sequence Info
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <h6 class="text-muted mb-1">Total Photos</h6>
+                    <strong>{{ photos|length }}</strong>
+                </div>
+                
+                <div class="mb-2">
+                    <h6 class="text-muted mb-1">Time Range</h6>
+                    <small>
+                        {{ photos[0].datetime }}<br>
+                        to<br>
+                        {{ photos[-1].datetime }}
+                    </small>
+                </div>
+                
+                <div class="mb-2">
+                    <h6 class="text-muted mb-1">Location</h6>
+                    <strong>{{ photos[0].location }}</strong>
+                </div>
+                
+                <div class="mb-2">
+                    <h6 class="text-muted mb-1">Tagged Photos</h6>
+                    <strong>{{ photos|selectattr('tags')|list|length }}</strong>
+                    <small class="text-muted">of {{ photos|length }}</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // View mode toggle
+    $('input[name="viewMode"]').change(function() {
+        const mode = $(this).val();
+        if (mode === 'gif') {
+            $('#gifViewer').show();
+            $('#photoViewer').hide();
+        } else {
+            $('#gifViewer').hide();
+            $('#photoViewer').show();
+            showPhoto(0); // Reset to first photo
+        }
+    });
+    
+    // Initialize photo viewer
+    showPhoto(0);
+});
+</script>
+{% endblock %}

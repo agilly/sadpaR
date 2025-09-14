@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}{{ species.get('Common Name', 'Unknown Species') }} - Sequences{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/main">Species List</a></li>
+                <li class="breadcrumb-item active">{{ species.get('Common Name', 'Unknown Species') }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-film"></i> Sequences for {{ species.get('Common Name', 'Unknown Species') }}
+                </h3>
+                <small class="text-muted"><em>{{ species.get('Species Name', '') }}</em></small>
+            </div>
+            <div class="card-body">
+                {% if sequences %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Camera/Station</th>
+                                    <th>Sequence</th>
+                                    <th>Individuals</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for seq in sequences %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ seq.ctid }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ seq.interval }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ seq.num_individuals }}</span>
+                                        {% if seq.individual_name %}
+                                            <br><small class="text-muted">{{ seq.individual_name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="status-{{ seq.status }}">
+                                            <i class="fas fa-circle"></i>
+                                            {{ seq.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="/sequence/{{ seq.ctid|urlencode }}/{{ seq.interval }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <h5>No Sequences Found</h5>
+                        <p>No sequences were found for this species.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-paw"></i> Species Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="text-muted mb-1">Common Name</h6>
+                    <strong>{{ species.get('Common Name', 'Unknown') }}</strong>
+                </div>
+                
+                {% if species.get('Species Name') %}
+                <div class="mb-3">
+                    <h6 class="text-muted mb-1">Scientific Name</h6>
+                    <em>{{ species['Species Name'] }}</em>
+                </div>
+                {% endif %}
+                
+                {% if species.get('Lao Name') %}
+                <div class="mb-3">
+                    <h6 class="text-muted mb-1">Lao Name</h6>
+                    <strong>{{ species['Lao Name'] }}</strong>
+                </div>
+                {% endif %}
+                
+                {% if species.get('Family') %}
+                <div class="mb-3">
+                    <h6 class="text-muted mb-1">Family</h6>
+                    {{ species['Family'] }}
+                </div>
+                {% endif %}
+                
+                {% if species.get('Order') %}
+                <div class="mb-3">
+                    <h6 class="text-muted mb-1">Order</h6>
+                    {{ species['Order'] }}
+                </div>
+                {% endif %}
+                
+                {% if species.get('Group') %}
+                <div class="mb-3">
+                    <h6 class="text-muted mb-1">Group</h6>
+                    {{ species['Group'] }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Statistics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <h6 class="text-muted mb-1">Total Events</h6>
+                        <strong>{{ sequences|length }}</strong>
+                    </div>
+                    
+                    {% if sequences %}
+                    <div class="col-6 mb-2">
+                        <h6 class="text-muted mb-1">Complete</h6>
+                        <span class="status-complete">
+                            <strong>{{ sequences|selectattr('status', 'equalto', 'complete')|list|length }}</strong>
+                        </span>
+                    </div>
+                    
+                    <div class="col-6 mb-2">
+                        <h6 class="text-muted mb-1">In Progress</h6>
+                        <span class="status-wip">
+                            <strong>{{ sequences|selectattr('status', 'equalto', 'wip')|list|length }}</strong>
+                        </span>
+                    </div>
+                    
+                    <div class="col-6 mb-2">
+                        <h6 class="text-muted mb-1">Needs Attention</h6>
+                        <span class="status-attention">
+                            <strong>{{ sequences|selectattr('status', 'equalto', 'attention')|list|length }}</strong>
+                        </span>
+                    </div>
+                    
+                    <div class="col-6">
+                        <h6 class="text-muted mb-1">Total Individuals</h6>
+                        <strong>{{ sequences|sum(attribute='num_individuals') }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
